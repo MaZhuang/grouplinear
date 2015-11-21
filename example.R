@@ -47,8 +47,9 @@ tse.hat.delta.gl/tse.hat.zero
 #dynamic
 c=DynamicSure(bat$X1,1/(4 * bat$N1))
 position=c[[1]]
+n=dim(position)[1]
 group=partition(position,1,n)
-group=c(0, group)
+group=c(0, group,n)
 group=unique(group)
 delta.dynamic=dynamic.grouplinear(x,v,group)
 tse.hat.delta.dynamic <- sum(   (  ( bat$X2 - delta.dynamic )^2 - 1/ ( 4 * bat$N2 )  )[ind]   )
@@ -67,6 +68,7 @@ sure.vec[1] <- sure.spher(bat$X1,1/(4 * bat$N1))
 for (k in 2:30){
 	sure.vec[k] <- sure.grouplinear(bat$X1,1/(4 * bat$N1),nbreak=k)
 }
+
 khat.sure <- which.min(sure.vec) # 4
 delta.gl.sure <- if(khat.sure>1) grouplinear( bat$X1,1/(4 * bat$N1),nbreak=khat.sure ) else spher(bat$X1,1/(4 * bat$N1))
 tse.hat.delta.gl.sure <- sum(   (  ( bat$X2 - delta.gl.sure )^2 - 1/ ( 4 * bat$N2 )  )[ind]   )

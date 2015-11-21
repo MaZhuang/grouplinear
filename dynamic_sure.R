@@ -7,7 +7,9 @@ DynamicSure=function(x,v){
 		b[i,i]=v[i]
 	}
 	for (l in 1:(n-1)){
-		print(l)
+		if (l %% 20==0){
+		    print(l)
+		}
 		for (i in 1:(n-l)){
 			j=l+i
 			sure=sure.spher(x[i:j], v[i:j])
@@ -75,15 +77,4 @@ dynamic.grouplinear <- function(x,v,group){ #nbreak=num of bins
 	}
 	est
 }
-
-
-v=1/(4 * bat$N1)
-x=bat$X1
-
-c=DynamicSure(bat$X1[1:n],1/(4 * bat$N1)[1:n])
-position=c[[1]]
-group=partition(position,1,n)
-group=c(0, group)
-group=unique(group)
-est=dynamic.grouplinear(x,v,group)
 
