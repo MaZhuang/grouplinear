@@ -1,5 +1,5 @@
 bat.perm <- function(){
-  bat <- bat.raw
+  bat <- bat.raw[1:50,]
   bat$N1 <- bat$AB.4. + bat$AB.5. + bat$AB.6.  # total number at-bats for 1st period
   bat$N2 <- bat$AB.7. + bat$AB.8. + bat$AB.9.10.  # total number at-bats for 2nd period
   bat$H1 <- bat$H.4. + bat$H.5. + bat$H.6.  # total number hits for 1st period
@@ -37,13 +37,15 @@ tse.gl <- rep(NA,N)
 tse.gl.ol <- rep(NA,N)
 tse.gl.sure <- rep(NA,N)
 tse.gl.dynamic <- rep(NA,N)
-bat.raw <- read.table("~/desktop/Example/Brown_batting_data.txt", header=TRUE, sep=",", quote="")
+path=getwd()
+datapath=paste(path,'Brown_batting_data.txt',sep='/')
+bat.raw <- read.table(datapath, header=TRUE, sep=",", quote="")
 
 for(j in 1:N){
   bat <- bat.perm()
   cat('Loop:',j)
-index=order(bat$N1,decreasing=TRUE)
-bat=bat[index,]
+  index=order(bat$N1,decreasing=TRUE)
+  bat=bat[index,]
   # estimating TSE for various estimators
   # run: functions.R(current folder), functions_XKB.R
   ind <- bat$N2>10  # indicator for records with N2>=11 (among those with N1>=11)
@@ -105,7 +107,7 @@ n=dim(position)[1]
 group=partition(position,1,n)
 group=c(0, group,n)
 group=unique(group)
-delta.dynamic=dynamic.grouplinear(x,v,group)
+delta.dynamic=dynamic.grouplinear(bat$X1,1/(4 * bat$N1),group)
 tse.hat.delta.dynamic <- sum(   (  ( bat$X2 - delta.dynamic )^2 - 1/ ( 4 * bat$N2 )  )[ind]   )
 tse.gl.dynamic[j] =tse.hat.delta.dynamic/tse.hat.zero
 
@@ -122,6 +124,5 @@ average=c(tse.gm.all,tse.M.all,tse.SG.all,tse.gl.all,tse.gl.ol.all,tse.gl.sure.a
 error=cbind(tse.gm,tse.M,tse.SG,tse.gl,tse.gl.ol,tse.gl.sure,tse.gl.dynamic)
 
 
-write.table(average, "~/desktop/average.txt",sep="\t",col.names=c('tse.gm','tse.M','tse.SG,tse.gl','tse.gl.ol','tse.gl.sure','tse.gl.dynamic'))
-write.table(error, "~/desktop/error.txt",sep="\t",row.names=FALSE,col.names=c('tse.gm','tse.M','tse.SG,tse.gl','tse.gl.ol','tse.gl.sure','tse.gl.dynamic'))
-
+write.table(average, "~/desktop/average.txt",sep="\t",row.names=FALSE)
+write.table(error, "~/desktop/error.txt",sep="\t",row.names=FALSE)

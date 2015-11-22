@@ -76,7 +76,7 @@ grouplinear.zero <- function( x,v,nbreak=floor(length(x)^(1/3)) ){  # default: b
 sure.spher <- function(x.,v.){
   n. <- length(x.)
  # cstar <- max( 1-2*( max(v.)/mean(v.) )/(n.-1), 0) ##modified
-  if (n.==0) {NULL 
+  if (n.==0) {0 
   } else if ( (n.<3) ) {sum(v.)  #| (var(x.)==0) 
   }
   else if (max( 1-2*( max(v.)/mean(v.) )/(n.-1), 0)==0){
@@ -107,6 +107,7 @@ sure.spher.zero <- function(x.,v.){
     sum(   v. + ( b * (x.) )^2 - 2 * v. * (  b + 2 * x.^2 * db/n.  )   )
   }
 }
+
 
 sure.grouplinear <- function(x,v,nbreak){ #nbreak=num of bins
 	n <- length(x)
