@@ -1,7 +1,15 @@
 # Baseball
 
+if(!exists("foo", mode="function")) source("functions.R")
+if(!exists("foo", mode="function")) source("functions_XKB.R")
+if(!exists("foo", mode="function")) source("dynamic_sure.R")
+path=getwd()
+datapath=paste(path,'Brown_batting_data.txt',sep='/')
+bat.raw <- read.table(datapath, header=TRUE, sep=",", quote="")
+
 # prepare the data for analysis
-bat.raw <- read.table("~/desktop/Example/Brown_batting_data.txt", header=TRUE, sep=",", quote="")
+#bat.raw <- read.table("~/desktop/Example/Brown_batting_data.txt", header=TRUE, sep=",", quote="")
+
 bat <- bat.raw
 bat$N1 <- bat$AB.4. + bat$AB.5. + bat$AB.6.  # total number at-bats for 1st period
 bat$N2 <- bat$AB.7. + bat$AB.8. + bat$AB.9.10.  # total number at-bats for 2nd period
@@ -45,13 +53,7 @@ tse.hat.delta.gl/tse.hat.zero
 
 
 #dynamic
-c=DynamicSure(bat$X1,1/(4 * bat$N1))
-position=c[[1]]
-n=dim(position)[1]
-group=partition(position,1,n)
-group=c(0, group,n)
-group=unique(group)
-delta.dynamic=dynamic.grouplinear(x,v,group)
+delta.dynamic=GroupSure(bat$X1,1/(4 * bat$N1))
 tse.hat.delta.dynamic <- sum(   (  ( bat$X2 - delta.dynamic )^2 - 1/ ( 4 * bat$N2 )  )[ind]   )
 tse.hat.delta.dynamic/tse.hat.zero
 

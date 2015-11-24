@@ -47,13 +47,13 @@ thetahat.SG <- function(X,A){
 }
 
 #example
-p <- 100
-A <- runif(p,.1,1)
-theta <- rnorm(p)
-X <- rnorm(p,theta,sqrt(A))
-thetahat.M(X,A)
-thetahat.G(X,A)
-thetahat.SG(X,A)
+#p <- 100
+#A <- runif(p,.1,1)
+#theta <- rnorm(p)
+#X <- rnorm(p,theta,sqrt(A))
+#thetahat.M(X,A)
+#thetahat.G(X,A)
+#thetahat.SG(X,A)
 
 
 # plot(X,thetahat.M(X,A), cex=.5, pch=16, ylim = range(thetahat.M(X,A), thetahat.SG(X,A)))

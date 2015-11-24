@@ -29,26 +29,8 @@ DynamicSure=function(x,v){
 	}
 	list(a,b)
 }
-sure.spher <- function(x.,v.){
-  n. <- length(x.)
- # cstar <- max( 1-2*( max(v.)/mean(v.) )/(n.-1), 0) ##modified
-  if (n.==0) {NULL 
-  } else if ( (n.<3) ) {sum(v.)  #| (var(x.)==0) 
-  }
-  else if (max( 1-2*( max(v.)/mean(v.) )/(n.-1), 0)==0){
-  	sum(v.) 
-  }
-  else if (var(x.)==0){
-  	(2-n.)/n.*sum(v.)+sum((x.-mean(x.))^2)
-  }
-  else {	# can set sure to an arbitrary value if var(x.)=0, since this event is of measure zero
-	cstar <- max( 1-2*( max(v.)/mean(v.) )/(n.-1), 0) ##modified
-	b <- cstar * mean(v.)/var(x.)
-    b <- min(1,b)
-	db <- -cstar * mean(v.)/(var(x.))^2 * as.numeric( cstar * mean(v.)/var(x.) < 1 )##
-	sum(   v. + ( b * (x.-mean(x.)) )^2 - 2 * v. * (  (1-1/n.) * b + 2 * (x.-mean(x.))^2 * db/(n.-1)  )   )
-	}
-}
+
+
 
 partition=function(position,i,j){
 	if (position[i,j]==j){
@@ -57,9 +39,6 @@ partition=function(position,i,j){
 		return(i)
 	}
 	else{
-		#par=c(partition(position,i,position[i,j]),position[i,j])
-		#par=c(par,partition(position,position[i,j],j))
-		#return(par)
 		a=partition(position,i,position[i,j])
 		b=partition(position,position[i,j],j)
 		return(c(a,position[i,j],b))
@@ -76,5 +55,16 @@ dynamic.grouplinear <- function(x,v,group){ #nbreak=num of bins
 		est[(group[i]+1):group[i+1]]=spher(x[(group[i]+1):group[i+1]],v[(group[i]+1):group[i+1]])
 	}
 	est
+}
+
+GroupSure<- function(x,v){ 
+   c=DynamicSure(x,v)
+   position=c[[1]]
+   n=dim(position)[1]
+   group=partition(position,1,n)
+   group=c(0, group,n)
+   group=unique(group)
+   est=dynamic.grouplinear(x,v,group)
+   return(est)
 }
 

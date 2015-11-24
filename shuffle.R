@@ -1,5 +1,5 @@
 bat.perm <- function(){
-  bat <- bat.raw[1:50,]
+  bat <- bat.raw[1:150,]
   bat$N1 <- bat$AB.4. + bat$AB.5. + bat$AB.6.  # total number at-bats for 1st period
   bat$N2 <- bat$AB.7. + bat$AB.8. + bat$AB.9.10.  # total number at-bats for 2nd period
   bat$H1 <- bat$H.4. + bat$H.5. + bat$H.6.  # total number hits for 1st period
@@ -27,6 +27,9 @@ bat.perm <- function(){
 }
 
 N <- 3# num shuffling rounds
+if(!exists("foo", mode="function")) source("functions.R")
+if(!exists("foo", mode="function")) source("functions_XKB.R")
+if(!exists("foo", mode="function")) source("dynamic_sure.R")
 
 ## all batters
 
@@ -100,14 +103,8 @@ for(j in 1:N){
   tse.gl.sure[j] <- tse.hat.delta.gl.sure/tse.hat.zero
   
   
-#dynamic
-c=DynamicSure(bat$X1,1/(4 * bat$N1))
-position=c[[1]]
-n=dim(position)[1]
-group=partition(position,1,n)
-group=c(0, group,n)
-group=unique(group)
-delta.dynamic=dynamic.grouplinear(bat$X1,1/(4 * bat$N1),group)
+
+delta.dynamic=GroupSure(bat$X1,1/(4 * bat$N1))
 tse.hat.delta.dynamic <- sum(   (  ( bat$X2 - delta.dynamic )^2 - 1/ ( 4 * bat$N2 )  )[ind]   )
 tse.gl.dynamic[j] =tse.hat.delta.dynamic/tse.hat.zero
 
@@ -123,6 +120,6 @@ tse.gl.dynamic.all <- mean(tse.gl.dynamic)
 average=c(tse.gm.all,tse.M.all,tse.SG.all,tse.gl.all,tse.gl.ol.all,tse.gl.sure.all,tse.gl.dynamic.all )
 error=cbind(tse.gm,tse.M,tse.SG,tse.gl,tse.gl.ol,tse.gl.sure,tse.gl.dynamic)
 
-
-write.table(average, "~/desktop/average.txt",sep="\t",row.names=FALSE)
+names=colnames(error)
+write.table(average, "~/desktop/average.txt",sep="\t",row.names=names)
 write.table(error, "~/desktop/error.txt",sep="\t",row.names=FALSE)

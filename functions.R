@@ -112,17 +112,17 @@ sure.spher.zero <- function(x.,v.){
 sure.grouplinear <- function(x,v,nbreak){ #nbreak=num of bins
 	n <- length(x)
 	splitby=cut(log(v),breaks=nbreak)
-	xsub <- split(x,splitby)
-	vsub <- split(v,splitby)
-	suresub <- mapply(sure.spher,xsub,vsub)   #modified
+	xsub <- split(x,splitby,drop=T)
+	vsub <- split(v,splitby,drop=T)
+	suresub <- mapply(sure.spher,xsub,vsub)   
 	sum(suresub)/n
 }
 
 sure.grouplinear.zero <- function(x,v,nbreak){ #nbreak=num of bins
   n <- length(x)
   splitby=cut(log(v),breaks=nbreak)
-  xsub <- split(x,splitby)
-  vsub <- split(v,splitby)
+  xsub <- split(x,splitby,drop=T)
+  vsub <- split(v,splitby,drop=T)
   suresub <- mapply(sure.spher.zero,xsub,vsub)
   sum(suresub)/n
 }

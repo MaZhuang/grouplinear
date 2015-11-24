@@ -1,362 +1,3 @@
-c=DynamicSure(bat$X1[1:n],1/(4 * bat$N1)[1:n])
-partition=function(position,i,j){#
-	if (position[i,j]==j){#
-		return(j)#
-	}else if (position[i,j]==i){#
-		return(i)#
-	}#
-	else{#
-		#par=c(partition(position,i,position[i,j]),position[i,j])#
-		#par=c(par,partition(position,position[i,j],j))#
-		#return(par)#
-		a=partition(position,i,position[i,j])#
-		b=partition(position,position[i,j],j)#
-		return(c(a,position[i,j],b))#
-	}#
-}
-group=partition(position,1,50)
-c=DynamicSure(bat$X1[1:n],1/(4 * bat$N1)[1:n])
-v=1/(4 * bat$N1)#
-x=bat$X1#
-n=50
-position=c[[1]]
-group=partition(position,1,50)
-group
-n=100
-c=DynamicSure(bat$X1[1:n],1/(4 * bat$N1)[1:n])
-position=c[[1]]
-group=partition(position,1,n)
-group
-bat=bat[1:n,]
-ind <- bat$N2>10  # indicator for records with N2>=11 (among those with N1>=11)#
-#
-tse.hat.zero <- sum(   (  ( bat$X2 - bat$X1 )^2 - 1/ ( 4 * bat$N2 )  )[ind]   )#
-#
-# grand mean#
-tse.hat.delta.gm <- sum(   (  ( bat$X2 - mean(bat$X1) )^2 - 1/ ( 4 * bat$N2 )  )[ind]   )#
-tse.hat.delta.gm/tse.hat.zero
-# XKB theta.hat.M#
-delta.M <- thetahat.M(bat$X1,1/(4 * bat$N1))#
-tse.hat.delta.M <- sum(   (  ( bat$X2 - delta.M )^2 - 1/ ( 4 * bat$N2 )  )[ind]   )#
-tse.hat.delta.M/tse.hat.zero
-# XKB (2012) code#
-#
-library(isotone)#
-#
-# bayes rule for fixed lambda,mu#
-thetahat <- function(X,A,lambda,mu){#
-	lambda/(lambda+A) * X + A/(lambda+A) * mu#
-}#
-#
-# d/dlambda{SURE(lambda,mu=mu.hat.SURE(lambda))} (proportional to)#
-g <- function(lambda,X,A){  #
-	sum( A^2/(lambda+A)^3 * (X-(  sum( A^2/(lambda+A)^2 * X ) / sum( A^2/(lambda+A)^2 )  ))^2 - A^2/(lambda+A)^2 )#
-	#equivalent to the following(which is just easier to read):#
-	#mu <- sum( A^2/(lambda+A)^2 * X ) / sum( A^2/(lambda+A)^2 )#
-	#sum( A^2/(lambda+A)^3 * (X-mu)^2 - A^2/(lambda+A)^2 )#
-}#
-#
-# SURE(lambda,mu)#
-f <- function(par,X,A){  #
-	lambda <- par[1]#
-	mu <- par[2]#
-	sum(  A/(lambda+A)^2 * ( A * (X-mu)^2 + lambda^2 - A^2 )  )#
-}#
-#
-# SURE.G(lambda)#
-f.G <- function(lambda,X,A){  #
-	sum(  ( A/(A+lambda) )^2 * (X - mean(X))^2 + A/(A+lambda) * (lambda - A + 2/p * A)  )#
-}#
-thetahat.M <- function(X,A){#
-	lambda.sure <- ifelse( g(0,X=X,A=A)*g(max(A)*1000,X=X,A=A) < 0, uniroot(g,c(0,max(A)*1000),X=X,A=A, tol=1e-9)$root, optim(c(mean(   pmax(  ( X-mean(X) )^2 - 	A,0  )   ), mean(X)),f,X=X,A=A, method = "L-BFGS-B",lower=c(0,-Inf))$par[1] )#
-	mu.sure <- sum( A^2/(lambda.sure+A)^2 * X ) / sum( A^2/(lambda.sure+A)^2 )#
-	thetahat(X,A,lambda.sure,mu.sure)#
-}#
-#
-thetahat.G <- function(X,A){#
-lambda <- optimize(f.G,lower=0,upper=1000,X=X,A=A)$minimum#
-thetahat(X,A,lambda,mean(X))#
-}#
-#
-thetahat.SG <- function(X,A){#
-	p <- length(X)#
-	fit <- gpava( z = A, y = A * (1-1/p) / (X-mean(X))^2, weights = (X-mean(X))^2, solver = weighted.mean, ties="primary" )#
-	bhat <- pmin(  pmax( fit$x,0 ),1  )#
-	(1-bhat) * X + bhat * mean(X)#
-}#
-#
-#example#
-p <- 100#
-A <- runif(p,.1,1)#
-theta <- rnorm(p)#
-X <- rnorm(p,theta,sqrt(A))#
-thetahat.M(X,A)#
-thetahat.G(X,A)#
-thetahat.SG(X,A)#
-# plot(X,thetahat.M(X,A), cex=.5, pch=16, ylim = range(thetahat.M(X,A), thetahat.SG(X,A)))#
-# points(X,thetahat.SG(X,A), cex=.5, pch=16, col='blue')#
-# SURE^G(lambda)#
-#
-sure.G <- function(lambda,x,v){#
-  x.bar <- mean(x)#
-  mean(  v^2/(v+lambda)^2 * (x-x.bar)^2 + v/(v+lambda) * (lambda - v + 2/n * v)  )  #
-}#
-#
-# lambda.vec <- ppoints(100)*100#
-# sure.G(lambda.vec,X,A)#
-# y <- sapply(lambda.vec,sure.G,x=x,v=v)#
-# plot(lambda.vec,y,pch=16,cex=.5)
-ind <- bat$N2>10  # indicator for records with N2>=11 (among those with N1>=11)#
-#
-tse.hat.zero <- sum(   (  ( bat$X2 - bat$X1 )^2 - 1/ ( 4 * bat$N2 )  )[ind]   )#
-#
-# grand mean#
-tse.hat.delta.gm <- sum(   (  ( bat$X2 - mean(bat$X1) )^2 - 1/ ( 4 * bat$N2 )  )[ind]   )#
-tse.hat.delta.gm/tse.hat.zero#
-#
-# XKB theta.hat.M#
-delta.M <- thetahat.M(bat$X1,1/(4 * bat$N1))#
-tse.hat.delta.M <- sum(   (  ( bat$X2 - delta.M )^2 - 1/ ( 4 * bat$N2 )  )[ind]   )#
-tse.hat.delta.M/tse.hat.zero
-# XKB theta.hat.SG#
-delta.SG <- thetahat.SG(X=bat$X1,A=1/(4 * bat$N1))#
-tse.hat.delta.SG <- sum(   (  ( bat$X2 - delta.SG )^2 - 1/ ( 4 * bat$N2 )  )[ind]   )#
-tse.hat.delta.SG/tse.hat.zero
-# group-linear#
-  # num bins = n^1/3#
-delta.gl <- grouplinear(x=bat$X1, v=1/(4 * bat$N1))#
-tse.hat.delta.gl <- sum(   (  ( bat$X2 - delta.gl )^2 - 1/ ( 4 * bat$N2 )  )[ind]   )#
-tse.hat.delta.gl/tse.hat.zero
-# Group-linear Functions#
-#
-# "2014-11-13 11:33:34 EST"#
-#
-## spherically symmetric estimator with c_n = c^*_n#
-spher <- function(x.,v.){#
-n. <- length(x.)#
-if ( (n.==1) | (var(x.)==0) ) x. else {#
-	cstar <- max( 1-2*( max(v.)/mean(v.) )/(n.-1), 0)#
-	bhat <- min( cstar*mean(v.)/var(x.), 1 )#
-	x. - bhat*(x. - mean(x.))#
-	}#
-}#
-## spherically symmetric estimator with c_n = c^*_n, shrinkage toward zero#
-spher.zero <- function(x.,v.){#
-  n. <- length(x.)#
-  cstar <- max( 1-2*( max(v.)/mean(v.) )/n., 0)#
-  bhat <- min( cstar*mean(v.)/mean(x.^2), 1 )#
-  (1- bhat)*x.#
-}#
-#
-## function that returns the common bhat (replicated)#
-spher.bhat <- function(x.,v.){#
-  n. <- length(x.)#
-  if ( (n.==1) | (var(x.)==0) ) x. else {#
-    cstar <- max( 1-2*( max(v.)/mean(v.) )/(n.-1), 0)#
-    bhat <- min( cstar*mean(v.)/var(x.), 1 )#
-    return(rep(bhat,n.))#
-  }#
-}#
-#
-## group-linear estimator#
-#
-grouplinear <- function( x,v,nbreak=floor(length(x)^(1/3)) ){  # default: bin log(v) into same NUMBER (=n^(1/3) of intervals#
-  n <- length(x)#
-  splitby=cut(log(v),breaks=nbreak, labels=F)#
-	xsub <- split(x,splitby)#
-	vsub <- split(v,splitby)#
-	indexsub <- split(1:n,splitby)#
-	thetahatsub <- mapply(spher,xsub,vsub)#
-	indexsub.unlist <- as.vector( unlist(indexsub) )#
-	thetahatsub.unlist <- as.vector( unlist(thetahatsub) )#
-	thetahat <- thetahatsub.unlist[order(indexsub.unlist)]	#
-	return(thetahat)#
-}#
-#
-## group-linear estimator with shrinkage toward zero#
-#
-grouplinear.zero <- function( x,v,nbreak=floor(length(x)^(1/3)) ){  # default: bin log(v) into same NUMBER (=n^(1/3) of intervals#
-  n <- length(x)#
-  splitby=cut(log(v),breaks=nbreak, labels=F)#
-  xsub <- split(x,splitby)#
-  vsub <- split(v,splitby)#
-  indexsub <- split(1:n,splitby)#
-  thetahatsub <- mapply(spher.zero,xsub,vsub)#
-  indexsub.unlist <- as.vector( unlist(indexsub) )#
-  thetahatsub.unlist <- as.vector( unlist(thetahatsub) )#
-  thetahat <- thetahatsub.unlist[order(indexsub.unlist)]	#
-  return(thetahat)#
-}#
-#
-# # ## example#
-# n <- 300#
-# v <- runif(n,.1,1)#
-# theta <- v-mean(v)#
-# x <- rnorm(n,theta,sd=sqrt(v))#
-# grouplinear(x,v)#
-# mean( (grouplinear(x,v)-theta)^2 )   #
-# mean( (grouplinear.zero(x,v)-theta)^2 )   #
-## sure for grouplinear estimator#
-#
-sure.spher <- function(x.,v.){#
-  n. <- length(x.)#
- # cstar <- max( 1-2*( max(v.)/mean(v.) )/(n.-1), 0) ##modified#
-  if (n.==0) {NULL #
-  } else if ( (n.<3) ) {sum(v.)  #| (var(x.)==0) #
-  }#
-  else if (max( 1-2*( max(v.)/mean(v.) )/(n.-1), 0)==0){#
-  	sum(v.) #
-  }#
-  else if (var(x.)==0){#
-  	(2-n.)/n.*sum(v.)+sum((x.-mean(x.))^2)#
-  }#
-  else {	# can set sure to an arbitrary value if var(x.)=0, since this event is of measure zero#
-	cstar <- max( 1-2*( max(v.)/mean(v.) )/(n.-1), 0) ##modified#
-	b <- cstar * mean(v.)/var(x.)#
-    b <- min(1,b)#
-	db <- -cstar * mean(v.)/(var(x.))^2 * as.numeric( cstar * mean(v.)/var(x.) < 1 )###
-	sum(   v. + ( b * (x.-mean(x.)) )^2 - 2 * v. * (  (1-1/n.) * b + 2 * (x.-mean(x.))^2 * db/(n.-1)  )   )#
-	}#
-}#
-sure.spher.zero <- function(x.,v.){#
-  if (n.==0) {0 #
-  }else if ( (n.==1) | (var(x.)==0) ) {sum(v.) #
-  }else {	# can set sure to an arbitrary value if var(x.)=0, since this event is of measure zero#
-    cstar <- 1-2*max(v.)/sum(v.) * ( 1-2*max(v.)/sum(v.) > 0 )#
-    b <- cstar * mean(v.)/mean(x.^2)#
-    b <- min(1,b)#
-    db <- -cstar * mean(v.)/mean(x.^2)^2 * ( cstar * mean(v.)/mean(x.^2) < 1 )#
-    sum(   v. + ( b * (x.) )^2 - 2 * v. * (  b + 2 * x.^2 * db/n.  )   )#
-  }#
-}#
-#
-sure.grouplinear <- function(x,v,nbreak){ #nbreak=num of bins#
-	n <- length(x)#
-	splitby=cut(log(v),breaks=nbreak)#
-	xsub <- split(x,splitby)#
-	vsub <- split(v,splitby)#
-	suresub <- mapply(sure.spher,xsub,vsub)#
-	sum(suresub)/n#
-}#
-#
-sure.grouplinear.zero <- function(x,v,nbreak){ #nbreak=num of bins#
-  n <- length(x)#
-  splitby=cut(log(v),breaks=nbreak)#
-  xsub <- split(x,splitby)#
-  vsub <- split(v,splitby)#
-  suresub <- mapply(sure.spher.zero,xsub,vsub)#
-  sum(suresub)/n#
-}
-# group-linear#
-  # num bins = n^1/3#
-delta.gl <- grouplinear(x=bat$X1, v=1/(4 * bat$N1))#
-tse.hat.delta.gl <- sum(   (  ( bat$X2 - delta.gl )^2 - 1/ ( 4 * bat$N2 )  )[ind]   )#
-tse.hat.delta.gl/tse.hat.zero
-group
-unique(group)
-group=unique(group)
-nbreak=6
-splitby=cut(log(v),breaks=nbreak)
-splitby
-v
-xsub <- split(x,splitby)
-xsub
-v=1/(4 * bat$N1)#
-x=bat$X1#
-n=100
-splitby=cut(v,breaks=nbreak)
-splitby
-xsub <- split(x,splitby)
-sub
-xsub
-group
-position=c[[1]]
-group=partition(position,1,n)
-group
-group=unique(group)
-group
-group=partition(position,1,n)#
-group=c(1, group)#
-group=unique(group)
-group
-group=partition(position,1,n)#
-group=c(0, group)#
-group=unique(group)
-dynamic.grouplinear <- function(x,v,group){ #nbreak=num of bins#
-	ngroup <- length(group)#
-	temp=rep(0,ngroup-1)#
-	for (i in 1:(ngroup-1)){#
-		temp[i]=sure.spher(x[group[i]+1,group[i+1]],v[group[i]+1,group[i+1]])#
-	}#
-	sum(temp)/length(x)#
-}
-dynamic.grouplinear(x,v,group)
-goup
-group
-dynamic.grouplinear <- function(x,v,group){ #nbreak=num of bins#
-	ngroup <- length(group)#
-	temp=rep(0,ngroup-1)#
-	for (i in 1:(ngroup-1)){#
-		temp[i]=sure.spher(x[(group[i]+1):group[i+1]],v[(group[i]+1):group[i+1]])#
-	}#
-	sum(temp)/length(x)#
-}
-dynamic.grouplinear(x,v,group)
-dynamic.grouplinear <- function(x,v,group){ #nbreak=num of bins#
-	ngroup <- length(group)#
-	temp=rep(0,ngroup-1)#
-	for (i in 1:(ngroup-1)){#
-		temp[i]=spher(x[(group[i]+1):group[i+1]],v[(group[i]+1):group[i+1]])#
-	}#
-	sum(temp)/length(x)#
-}
-dynamic.grouplinear(x,v,group)
-sure.grouplinear <- function(x,v,nbreak){ #nbreak=num of bins#
-	n <- length(x)#
-	splitby=cut(log(v),breaks=nbreak)#
-	xsub <- split(x,splitby)#
-	vsub <- split(v,splitby)#
-	suresub <- mapply(spher,xsub,vsub)   #modified#
-	sum(suresub)/n#
-}
-# URE#
-  # i) split into k intervals of equal length on log(v)#
-min.diff <- min(diff( sort(log( 1/(4 * bat$N1) )) )[diff( sort(log( 1/(4 * bat$N1) )) )>0])  # min_{i,j: v_i != v_j} |v_i-v_j|#
-kmax <- ceiling( diff(range(log( 1/(4 * bat$N1) )))/min.diff )#
-sure.vec <- rep(NA,kmax)#
-#
-sure.vec[1] <- sure.spher(bat$X1,1/(4 * bat$N1))#
-for (k in 2:30){#
-	sure.vec[k] <- sure.grouplinear(bat$X1,1/(4 * bat$N1),nbreak=k)#
-}#
-khat.sure <- which.min(sure.vec) # 4#
-delta.gl.sure <- if(khat.sure>1) grouplinear( bat$X1,1/(4 * bat$N1),nbreak=khat.sure ) else spher(bat$X1,1/(4 * bat$N1))#
-tse.hat.delta.gl.sure <- sum(   (  ( bat$X2 - delta.gl.sure )^2 - 1/ ( 4 * bat$N2 )  )[ind]   )#
-tse.hat.delta.gl.sure/tse.hat.zero  # 0.34
-# URE#
-  # i) split into k intervals of equal length on log(v)#
-min.diff <- min(diff( sort(log( 1/(4 * bat$N1) )) )[diff( sort(log( 1/(4 * bat$N1) )) )>0])  # min_{i,j: v_i != v_j} |v_i-v_j|#
-kmax <- ceiling( diff(range(log( 1/(4 * bat$N1) )))/min.diff )#
-sure.vec <- rep(NA,kmax)#
-#
-sure.vec[1] <- sure.spher(bat$X1,1/(4 * bat$N1))#
-for (k in 2:30){#
-	sure.vec[k] <- sure.grouplinear(bat$X1,1/(4 * bat$N1),nbreak=k)#
-}#
-khat.sure <- which.min(sure.vec) # 4#
-delta.gl.sure <- if(khat.sure>1) grouplinear( bat$X1,1/(4 * bat$N1),nbreak=khat.sure ) else spher(bat$X1,1/(4 * bat$N1))#
-tse.hat.delta.gl.sure <- sum(   (  ( bat$X2 - delta.gl.sure )^2 - 1/ ( 4 * bat$N2 )  )[ind]   )#
-tse.hat.delta.gl.sure/tse.hat.zero  # 0.34
-dynamic.grouplinear(x,v,group)
-dynamic.grouplinear(x,v,group)
-group
-x
-v
-ngroup <- length(group)#
-	temp=rep(0,ngroup-1)
-i=1
-temp[i]=spher(x[(group[i]+1):group[i+1]],v[(group[i]+1):group[i+1]])
-x[(group[i]+1):group[i+1]]
 v[(group[i]+1):group[i+1]]
 spher <- function(x.,v.){#
 n. <- length(x.)#
@@ -453,7 +94,6 @@ tse.hat.delta.dynamic/tse.hat.zero
 tse.hat.delta.dynamic <- sum(   (  ( bat$X2 - delta.dynamic )^2 - 1/ ( 4 * bat$N2 )  )[ind]   )
 tse.hat.delta.dynamic/tse.hat.zero
 delta.dynamic=dynamic.grouplinear(x,v,group)
-tse.hat.delta.dynamic <- sum(   (  ( bat$X2 - delta.dynamic )^2 - 1/ ( 4 * bat$N2 )  )[ind]   )
 tse.hat.delta.dynamic <- sum(   (  ( bat$X2 - delta.dynamic )^2 - 1/ ( 4 * bat$N2 )  )[ind]   )
 tse.hat.delta.dynamic/tse.hat.zero
 # Baseball#
@@ -631,7 +271,6 @@ tse.hat.delta.gl.ol
 print('hi')
 j=1
 print('Loop:',j)
-print('Loop:',j)
 cat('Loop:',j)
 j=2
 cat('Loop:',j)
@@ -648,7 +287,6 @@ tse.hat.delta.dynamic
 tse.hat.zero
 tse.hat.delta.dynamic/tse.hat.zero
 write.table(1:100, "~/desktop/text.txt",sep="\t")
-write.table(1:100, "~/desktop/text.txt",header=FALSE, sep="\t")
 write.table(1:100, "~/desktop/text.txt",header=FALSE, sep="\t")
 cbind(1:2,2:3)
 write.table(1:100, "~/desktop/text.txt",sep="\t",row.names=FALSE)
@@ -2083,3 +1721,738 @@ install.packages(isotone)
 install.packages('isotone')
 libarary(isotone)
 library(isotone)
+if(!exists("foo", mode="function")) source("util.R")
+if(!exists("foo", mode="function")) source("functions.R")
+if(!exists("foo", mode="function")) source("functions.R","functions_XKB.R")
+if(!exists("foo", mode="function")) source(c("functions.R","functions_XKB.R"))
+bat.perm <- function(){#
+  bat <- bat.raw[1:50,]#
+  bat$N1 <- bat$AB.4. + bat$AB.5. + bat$AB.6.  # total number at-bats for 1st period#
+  bat$N2 <- bat$AB.7. + bat$AB.8. + bat$AB.9.10.  # total number at-bats for 2nd period#
+  bat$H1 <- bat$H.4. + bat$H.5. + bat$H.6.  # total number hits for 1st period#
+  bat$H2 <- bat$H.7. + bat$H.8. + bat$H.9.10.  # total number hits for 2nd period#
+  # bat$R1 <- bat$H1/bat$N1  # batting avg for 1st period#
+  # bat$R2 <- bat$H2/bat$N2  # batting avg for 2nd period#
+  # bat$X1 <- asin(  sqrt( (bat$H1+1/4)/(bat$N1+1/2) )  )  # transformed batting avg for 1st period#
+  # bat$X2 <- asin(  sqrt( (bat$H2+1/4)/(bat$N2+1/2) )  )  # transformed batting avg for 2nd period#
+  bat <- bat[bat$N1 > 10,]  # keep only records with N1>=11  #
+  bat$H1.perm <- NA#
+  for(i in 1:dim(bat)[1]){#
+    bat$H1.perm[i] <- rhyper(nn=1,m=bat$H1[i] + bat$H2[i],n=bat$N1[i] + bat$N2[i] -bat$H1[i] - bat$H2[i],k=bat$N1[i])#
+  }#
+  bat$H2.perm <- bat$H1 + bat$H2 - bat$H1.perm#
+  # head(cbind(bat$H1,bat$H1.perm,bat$H2,bat$H2.perm))#
+  bat$H1 <- bat$H1.perm #
+  bat$H2 <- bat$H2.perm #
+  bat$R1 <- bat$H1/bat$N1  # batting avg for 1st period#
+  bat$R2 <- bat$H2/bat$N2  # batting avg for 2nd period#
+  bat$X1 <- asin(  sqrt( (bat$H1+1/4)/(bat$N1+1/2) )  )  # transformed batting avg for 1st period#
+  bat$X2 <- asin(  sqrt( (bat$H2+1/4)/(bat$N2+1/2) )  )  # transformed batting avg for 2nd period#
+  bat <-  bat[,c('First.Name','Last.Name','Pitcher.','N1','N2','H1','H2','X1','X2')]#
+}#
+#
+N <- 3# num shuffling rounds#
+#
+## all batters#
+#
+tse.gm <- rep(NA,N)#
+tse.M <- rep(NA,N)#
+tse.SG <- rep(NA,N)#
+tse.gl <- rep(NA,N)#
+tse.gl.ol <- rep(NA,N)#
+tse.gl.sure <- rep(NA,N)#
+tse.gl.dynamic <- rep(NA,N)#
+path=getwd()#
+datapath=paste(path,'Brown_batting_data.txt',sep='/')#
+bat.raw <- read.table(datapath, header=TRUE, sep=",", quote="")#
+#
+for(j in 1:N){#
+  bat <- bat.perm()#
+  cat('Loop:',j)#
+  index=order(bat$N1,decreasing=TRUE)#
+  bat=bat[index,]#
+  # estimating TSE for various estimators#
+  # run: functions.R(current folder), functions_XKB.R#
+  ind <- bat$N2>10  # indicator for records with N2>=11 (among those with N1>=11)#
+  tse.hat.zero <- sum(   (  ( bat$X2 - bat$X1 )^2 - 1/ ( 4 * bat$N2 )  )[ind]   )#
+  # grand mean#
+  tse.hat.delta.gm <- sum(   (  ( bat$X2 - mean(bat$X1) )^2 - 1/ ( 4 * bat$N2 )  )[ind]   )#
+  tse.gm[j] <- tse.hat.delta.gm/tse.hat.zero#
+  # XKB theta.hat.M#
+  delta.M <- thetahat.M(bat$X1,1/(4 * bat$N1))#
+  tse.hat.delta.M <- sum(   (  ( bat$X2 - delta.M )^2 - 1/ ( 4 * bat$N2 )  )[ind]   )#
+  tse.M[j] <- tse.hat.delta.M/tse.hat.zero#
+  # XKB theta.hat.SG#
+  delta.SG <- thetahat.SG(bat$X1,1/(4 * bat$N1))#
+  tse.hat.delta.SG <- sum(   (  ( bat$X2 - delta.SG )^2 - 1/ ( 4 * bat$N2 )  )[ind]   )#
+  tse.SG[j] <- tse.hat.delta.SG/tse.hat.zero#
+  # group-linear  #
+    # num bins = n^1/3#
+  delta.gl <- grouplinear(x=bat$X1, v=1/(4 * bat$N1))#
+  tse.hat.delta.gl <- sum(   (  ( bat$X2 - delta.gl )^2 - 1/ ( 4 * bat$N2 )  )[ind]   )#
+  tse.gl[j] <- tse.hat.delta.gl/tse.hat.zero#
+    # oracle#
+  rel.tse.breaks <- rep(NA,20)#
+  delta.gl <- spher(x=bat$X1, v=1/(4 * bat$N1))#
+  tse.hat.delta.gl <- sum(   (  ( bat$X2 - delta.gl )^2 - 1/ ( 4 * bat$N2 )  )[ind]   )#
+  rel.tse.breaks[1] <- tse.hat.delta.gl/tse.hat.zero#
+  for(i in 2:20){#
+    delta.gl <- grouplinear(x=bat$X1, v=1/(4 * bat$N1),nbreak = i)#
+    tse.hat.delta.gl <- sum(   (  ( bat$X2 - delta.gl )^2 - 1/ ( 4 * bat$N2 )  )[ind]   )#
+    rel.tse.breaks[i] <- tse.hat.delta.gl/tse.hat.zero#
+  }#
+  tse.gl.ol[j] <- min(rel.tse.breaks)#
+#   k.ol <- which.min(rel.tse.breaks)  #
+    # URE#
+  # i) split into k intervals of equal length on log(v)#
+  min.diff <- min(diff( sort(log( 1/(4 * bat$N1) )) )[diff( sort(log( 1/(4 * bat$N1) )) )>0])  # min_{i,j: v_i != v_j} |v_i-v_j|#
+  kmax <- ceiling( diff(range(log( 1/(4 * bat$N1) )))/min.diff )#
+  sure.vec <- rep(NA,kmax)#
+  sure.vec[1] <- sure.spher(bat$X1,1/(4 * bat$N1))#
+  for (k in 2:30){#
+    sure.vec[k] <- sure.grouplinear(bat$X1,1/(4 * bat$N1),nbreak=k)#
+  }#
+  khat.sure <- which.min(sure.vec)#
+  delta.gl.sure <- if(khat.sure>1) grouplinear( bat$X1,1/(4 * bat$N1),nbreak=khat.sure) else spher( bat$X1,1/(4 * bat$N1))#
+  tse.hat.delta.gl.sure <- sum(   (  ( bat$X2 - delta.gl.sure )^2 - 1/ ( 4 * bat$N2 )  )[ind]   )#
+  tse.gl.sure[j] <- tse.hat.delta.gl.sure/tse.hat.zero#
+#dynamic#
+c=DynamicSure(bat$X1,1/(4 * bat$N1))#
+position=c[[1]]#
+n=dim(position)[1]#
+group=partition(position,1,n)#
+group=c(0, group,n)#
+group=unique(group)#
+delta.dynamic=dynamic.grouplinear(bat$X1,1/(4 * bat$N1),group)#
+tse.hat.delta.dynamic <- sum(   (  ( bat$X2 - delta.dynamic )^2 - 1/ ( 4 * bat$N2 )  )[ind]   )#
+tse.gl.dynamic[j] =tse.hat.delta.dynamic/tse.hat.zero#
+#
+}#
+#
+tse.gm.all <- mean(tse.gm)#
+tse.M.all <- mean(tse.M)#
+tse.SG.all <- mean(tse.SG)#
+tse.gl.all <- mean(tse.gl)#
+tse.gl.ol.all <- mean(tse.gl.ol)#
+tse.gl.sure.all <- mean(tse.gl.sure)#
+tse.gl.dynamic.all <- mean(tse.gl.dynamic)#
+average=c(tse.gm.all,tse.M.all,tse.SG.all,tse.gl.all,tse.gl.ol.all,tse.gl.sure.all,tse.gl.dynamic.all )#
+error=cbind(tse.gm,tse.M,tse.SG,tse.gl,tse.gl.ol,tse.gl.sure,tse.gl.dynamic)#
+write.table(average, "~/desktop/average.txt",sep="\t",row.names=FALSE)#
+write.table(error, "~/desktop/error.txt",sep="\t",row.names=FALSE)
+bat.perm <- function(){#
+  bat <- bat.raw[1:50,]#
+  bat$N1 <- bat$AB.4. + bat$AB.5. + bat$AB.6.  # total number at-bats for 1st period#
+  bat$N2 <- bat$AB.7. + bat$AB.8. + bat$AB.9.10.  # total number at-bats for 2nd period#
+  bat$H1 <- bat$H.4. + bat$H.5. + bat$H.6.  # total number hits for 1st period#
+  bat$H2 <- bat$H.7. + bat$H.8. + bat$H.9.10.  # total number hits for 2nd period#
+  # bat$R1 <- bat$H1/bat$N1  # batting avg for 1st period#
+  # bat$R2 <- bat$H2/bat$N2  # batting avg for 2nd period#
+  # bat$X1 <- asin(  sqrt( (bat$H1+1/4)/(bat$N1+1/2) )  )  # transformed batting avg for 1st period#
+  # bat$X2 <- asin(  sqrt( (bat$H2+1/4)/(bat$N2+1/2) )  )  # transformed batting avg for 2nd period#
+  bat <- bat[bat$N1 > 10,]  # keep only records with N1>=11  #
+  bat$H1.perm <- NA#
+  for(i in 1:dim(bat)[1]){#
+    bat$H1.perm[i] <- rhyper(nn=1,m=bat$H1[i] + bat$H2[i],n=bat$N1[i] + bat$N2[i] -bat$H1[i] - bat$H2[i],k=bat$N1[i])#
+  }#
+  bat$H2.perm <- bat$H1 + bat$H2 - bat$H1.perm#
+  # head(cbind(bat$H1,bat$H1.perm,bat$H2,bat$H2.perm))#
+  bat$H1 <- bat$H1.perm #
+  bat$H2 <- bat$H2.perm #
+  bat$R1 <- bat$H1/bat$N1  # batting avg for 1st period#
+  bat$R2 <- bat$H2/bat$N2  # batting avg for 2nd period#
+  bat$X1 <- asin(  sqrt( (bat$H1+1/4)/(bat$N1+1/2) )  )  # transformed batting avg for 1st period#
+  bat$X2 <- asin(  sqrt( (bat$H2+1/4)/(bat$N2+1/2) )  )  # transformed batting avg for 2nd period#
+  bat <-  bat[,c('First.Name','Last.Name','Pitcher.','N1','N2','H1','H2','X1','X2')]#
+}#
+if(!exists("foo", mode="function")) source("functions.R")#
+if(!exists("foo", mode="function")) source("functions_XKB.R")#
+if(!exists("foo", mode="function")) source("dynamic_sure.R")#
+N <- 3# num shuffling rounds#
+#
+## all batters#
+#
+tse.gm <- rep(NA,N)#
+tse.M <- rep(NA,N)#
+tse.SG <- rep(NA,N)#
+tse.gl <- rep(NA,N)#
+tse.gl.ol <- rep(NA,N)#
+tse.gl.sure <- rep(NA,N)#
+tse.gl.dynamic <- rep(NA,N)#
+path=getwd()#
+datapath=paste(path,'Brown_batting_data.txt',sep='/')#
+bat.raw <- read.table(datapath, header=TRUE, sep=",", quote="")#
+#
+for(j in 1:N){#
+  bat <- bat.perm()#
+  cat('Loop:',j)#
+  index=order(bat$N1,decreasing=TRUE)#
+  bat=bat[index,]#
+  # estimating TSE for various estimators#
+  # run: functions.R(current folder), functions_XKB.R#
+  ind <- bat$N2>10  # indicator for records with N2>=11 (among those with N1>=11)#
+  tse.hat.zero <- sum(   (  ( bat$X2 - bat$X1 )^2 - 1/ ( 4 * bat$N2 )  )[ind]   )#
+  # grand mean#
+  tse.hat.delta.gm <- sum(   (  ( bat$X2 - mean(bat$X1) )^2 - 1/ ( 4 * bat$N2 )  )[ind]   )#
+  tse.gm[j] <- tse.hat.delta.gm/tse.hat.zero#
+  # XKB theta.hat.M#
+  delta.M <- thetahat.M(bat$X1,1/(4 * bat$N1))#
+  tse.hat.delta.M <- sum(   (  ( bat$X2 - delta.M )^2 - 1/ ( 4 * bat$N2 )  )[ind]   )#
+  tse.M[j] <- tse.hat.delta.M/tse.hat.zero#
+  # XKB theta.hat.SG#
+  delta.SG <- thetahat.SG(bat$X1,1/(4 * bat$N1))#
+  tse.hat.delta.SG <- sum(   (  ( bat$X2 - delta.SG )^2 - 1/ ( 4 * bat$N2 )  )[ind]   )#
+  tse.SG[j] <- tse.hat.delta.SG/tse.hat.zero#
+  # group-linear  #
+    # num bins = n^1/3#
+  delta.gl <- grouplinear(x=bat$X1, v=1/(4 * bat$N1))#
+  tse.hat.delta.gl <- sum(   (  ( bat$X2 - delta.gl )^2 - 1/ ( 4 * bat$N2 )  )[ind]   )#
+  tse.gl[j] <- tse.hat.delta.gl/tse.hat.zero#
+    # oracle#
+  rel.tse.breaks <- rep(NA,20)#
+  delta.gl <- spher(x=bat$X1, v=1/(4 * bat$N1))#
+  tse.hat.delta.gl <- sum(   (  ( bat$X2 - delta.gl )^2 - 1/ ( 4 * bat$N2 )  )[ind]   )#
+  rel.tse.breaks[1] <- tse.hat.delta.gl/tse.hat.zero#
+  for(i in 2:20){#
+    delta.gl <- grouplinear(x=bat$X1, v=1/(4 * bat$N1),nbreak = i)#
+    tse.hat.delta.gl <- sum(   (  ( bat$X2 - delta.gl )^2 - 1/ ( 4 * bat$N2 )  )[ind]   )#
+    rel.tse.breaks[i] <- tse.hat.delta.gl/tse.hat.zero#
+  }#
+  tse.gl.ol[j] <- min(rel.tse.breaks)#
+#   k.ol <- which.min(rel.tse.breaks)  #
+    # URE#
+  # i) split into k intervals of equal length on log(v)#
+  min.diff <- min(diff( sort(log( 1/(4 * bat$N1) )) )[diff( sort(log( 1/(4 * bat$N1) )) )>0])  # min_{i,j: v_i != v_j} |v_i-v_j|#
+  kmax <- ceiling( diff(range(log( 1/(4 * bat$N1) )))/min.diff )#
+  sure.vec <- rep(NA,kmax)#
+  sure.vec[1] <- sure.spher(bat$X1,1/(4 * bat$N1))#
+  for (k in 2:30){#
+    sure.vec[k] <- sure.grouplinear(bat$X1,1/(4 * bat$N1),nbreak=k)#
+  }#
+  khat.sure <- which.min(sure.vec)#
+  delta.gl.sure <- if(khat.sure>1) grouplinear( bat$X1,1/(4 * bat$N1),nbreak=khat.sure) else spher( bat$X1,1/(4 * bat$N1))#
+  tse.hat.delta.gl.sure <- sum(   (  ( bat$X2 - delta.gl.sure )^2 - 1/ ( 4 * bat$N2 )  )[ind]   )#
+  tse.gl.sure[j] <- tse.hat.delta.gl.sure/tse.hat.zero#
+#dynamic#
+c=DynamicSure(bat$X1,1/(4 * bat$N1))#
+position=c[[1]]#
+n=dim(position)[1]#
+group=partition(position,1,n)#
+group=c(0, group,n)#
+group=unique(group)#
+delta.dynamic=dynamic.grouplinear(bat$X1,1/(4 * bat$N1),group)#
+tse.hat.delta.dynamic <- sum(   (  ( bat$X2 - delta.dynamic )^2 - 1/ ( 4 * bat$N2 )  )[ind]   )#
+tse.gl.dynamic[j] =tse.hat.delta.dynamic/tse.hat.zero#
+#
+}#
+#
+tse.gm.all <- mean(tse.gm)#
+tse.M.all <- mean(tse.M)#
+tse.SG.all <- mean(tse.SG)#
+tse.gl.all <- mean(tse.gl)#
+tse.gl.ol.all <- mean(tse.gl.ol)#
+tse.gl.sure.all <- mean(tse.gl.sure)#
+tse.gl.dynamic.all <- mean(tse.gl.dynamic)#
+average=c(tse.gm.all,tse.M.all,tse.SG.all,tse.gl.all,tse.gl.ol.all,tse.gl.sure.all,tse.gl.dynamic.all )#
+error=cbind(tse.gm,tse.M,tse.SG,tse.gl,tse.gl.ol,tse.gl.sure,tse.gl.dynamic)#
+write.table(average, "~/desktop/average.txt",sep="\t",row.names=FALSE)#
+write.table(error, "~/desktop/error.txt",sep="\t",row.names=FALSE)
+bat.perm <- function(){#
+  bat <- bat.raw[1:50,]#
+  bat$N1 <- bat$AB.4. + bat$AB.5. + bat$AB.6.  # total number at-bats for 1st period#
+  bat$N2 <- bat$AB.7. + bat$AB.8. + bat$AB.9.10.  # total number at-bats for 2nd period#
+  bat$H1 <- bat$H.4. + bat$H.5. + bat$H.6.  # total number hits for 1st period#
+  bat$H2 <- bat$H.7. + bat$H.8. + bat$H.9.10.  # total number hits for 2nd period#
+  # bat$R1 <- bat$H1/bat$N1  # batting avg for 1st period#
+  # bat$R2 <- bat$H2/bat$N2  # batting avg for 2nd period#
+  # bat$X1 <- asin(  sqrt( (bat$H1+1/4)/(bat$N1+1/2) )  )  # transformed batting avg for 1st period#
+  # bat$X2 <- asin(  sqrt( (bat$H2+1/4)/(bat$N2+1/2) )  )  # transformed batting avg for 2nd period#
+  bat <- bat[bat$N1 > 10,]  # keep only records with N1>=11  #
+  bat$H1.perm <- NA#
+  for(i in 1:dim(bat)[1]){#
+    bat$H1.perm[i] <- rhyper(nn=1,m=bat$H1[i] + bat$H2[i],n=bat$N1[i] + bat$N2[i] -bat$H1[i] - bat$H2[i],k=bat$N1[i])#
+  }#
+  bat$H2.perm <- bat$H1 + bat$H2 - bat$H1.perm#
+  # head(cbind(bat$H1,bat$H1.perm,bat$H2,bat$H2.perm))#
+  bat$H1 <- bat$H1.perm #
+  bat$H2 <- bat$H2.perm #
+  bat$R1 <- bat$H1/bat$N1  # batting avg for 1st period#
+  bat$R2 <- bat$H2/bat$N2  # batting avg for 2nd period#
+  bat$X1 <- asin(  sqrt( (bat$H1+1/4)/(bat$N1+1/2) )  )  # transformed batting avg for 1st period#
+  bat$X2 <- asin(  sqrt( (bat$H2+1/4)/(bat$N2+1/2) )  )  # transformed batting avg for 2nd period#
+  bat <-  bat[,c('First.Name','Last.Name','Pitcher.','N1','N2','H1','H2','X1','X2')]#
+}
+N <- 3# num shuffling rounds#
+#
+## all batters#
+#
+tse.gm <- rep(NA,N)#
+tse.M <- rep(NA,N)#
+tse.SG <- rep(NA,N)#
+tse.gl <- rep(NA,N)#
+tse.gl.ol <- rep(NA,N)#
+tse.gl.sure <- rep(NA,N)#
+tse.gl.dynamic <- rep(NA,N)#
+path=getwd()#
+datapath=paste(path,'Brown_batting_data.txt',sep='/')#
+bat.raw <- read.table(datapath, header=TRUE, sep=",", quote="")
+bat <- bat.perm()#
+  cat('Loop:',j)#
+  index=order(bat$N1,decreasing=TRUE)#
+  bat=bat[index,]
+# run: functions.R(current folder), functions_XKB.R#
+  ind <- bat$N2>10  # indicator for records with N2>=11 (among those with N1>=11)#
+  tse.hat.zero <- sum(   (  ( bat$X2 - bat$X1 )^2 - 1/ ( 4 * bat$N2 )  )[ind]   )#
+  # grand mean#
+  tse.hat.delta.gm <- sum(   (  ( bat$X2 - mean(bat$X1) )^2 - 1/ ( 4 * bat$N2 )  )[ind]   )#
+  tse.gm[j] <- tse.hat.delta.gm/tse.hat.zero
+# XKB theta.hat.M#
+  delta.M <- thetahat.M(bat$X1,1/(4 * bat$N1))#
+  tse.hat.delta.M <- sum(   (  ( bat$X2 - delta.M )^2 - 1/ ( 4 * bat$N2 )  )[ind]   )#
+  tse.M[j] <- tse.hat.delta.M/tse.hat.zero
+# XKB theta.hat.SG#
+  delta.SG <- thetahat.SG(bat$X1,1/(4 * bat$N1))#
+  tse.hat.delta.SG <- sum(   (  ( bat$X2 - delta.SG )^2 - 1/ ( 4 * bat$N2 )  )[ind]   )#
+  tse.SG[j] <- tse.hat.delta.SG/tse.hat.zero
+# group-linear  #
+    # num bins = n^1/3#
+  delta.gl <- grouplinear(x=bat$X1, v=1/(4 * bat$N1))#
+  tse.hat.delta.gl <- sum(   (  ( bat$X2 - delta.gl )^2 - 1/ ( 4 * bat$N2 )  )[ind]   )#
+  tse.gl[j] <- tse.hat.delta.gl/tse.hat.zero#
+    # oracle#
+  rel.tse.breaks <- rep(NA,20)#
+  delta.gl <- spher(x=bat$X1, v=1/(4 * bat$N1))#
+  tse.hat.delta.gl <- sum(   (  ( bat$X2 - delta.gl )^2 - 1/ ( 4 * bat$N2 )  )[ind]   )#
+  rel.tse.breaks[1] <- tse.hat.delta.gl/tse.hat.zero#
+  for(i in 2:20){#
+    delta.gl <- grouplinear(x=bat$X1, v=1/(4 * bat$N1),nbreak = i)#
+    tse.hat.delta.gl <- sum(   (  ( bat$X2 - delta.gl )^2 - 1/ ( 4 * bat$N2 )  )[ind]   )#
+    rel.tse.breaks[i] <- tse.hat.delta.gl/tse.hat.zero#
+  }#
+  tse.gl.ol[j] <- min(rel.tse.breaks)#
+#   k.ol <- which.min(rel.tse.breaks)
+# URE#
+  # i) split into k intervals of equal length on log(v)#
+  min.diff <- min(diff( sort(log( 1/(4 * bat$N1) )) )[diff( sort(log( 1/(4 * bat$N1) )) )>0])  # min_{i,j: v_i != v_j} |v_i-v_j|#
+  kmax <- ceiling( diff(range(log( 1/(4 * bat$N1) )))/min.diff )#
+  sure.vec <- rep(NA,kmax)#
+  sure.vec[1] <- sure.spher(bat$X1,1/(4 * bat$N1))#
+  for (k in 2:30){#
+    sure.vec[k] <- sure.grouplinear(bat$X1,1/(4 * bat$N1),nbreak=k)#
+  }#
+  khat.sure <- which.min(sure.vec)#
+  delta.gl.sure <- if(khat.sure>1) grouplinear( bat$X1,1/(4 * bat$N1),nbreak=khat.sure) else spher( bat$X1,1/(4 * bat$N1))#
+  tse.hat.delta.gl.sure <- sum(   (  ( bat$X2 - delta.gl.sure )^2 - 1/ ( 4 * bat$N2 )  )[ind]   )#
+  tse.gl.sure[j] <- tse.hat.delta.gl.sure/tse.hat.zero
+khat.sure
+for (k in 2:30){#
+    sure.vec[k] <- sure.grouplinear(bat$X1,1/(4 * bat$N1),nbreak=k)#
+  }
+sure.vec
+sure.grouplinear(bat$X1,1/(4 * bat$N1),nbreak=k)
+k
+sure.grouplinear(bat$X1,1/(4 * bat$N1),nbreak=k)
+x=bat$X1
+v=1/(4*bat$N1)
+nbreak=k
+n <- length(x)#
+	splitby=cut(log(v),breaks=nbreak)#
+	xsub <- split(x,splitby)#
+	vsub <- split(v,splitby)#
+	suresub <- mapply(sure.spher,xsub,vsub)   #modified#
+	sum(suresub)/n
+suresub
+xsub
+length(xsub)
+xsub[1]
+xsub[2]
+xsub[3]
+length(xsub[3])
+length(xsub[1])
+xsub1
+xsub[1]
+sure.spher(xsub,ysub)
+sure.spher(xsub[1],ysub[1])
+sure.spher(xsub[1],vsub[1])
+vsub
+apply(sure.spher,xsub,vsub)
+apply(sure.spher,xsub[1],vsub[1])
+suresub <- mapply(sure.spher,xsub,vsub)
+suresub
+sum(suresub)
+sum(suresub!=NULL)
+suresub
+suresub==NULL
+sum(suresub[5:6])
+as.numeric(suresub)
+splitby=cut(log(v),breaks=nbreak)
+splitby
+xsub <- split(x,splitby,drop=T)
+xsub
+bat.perm <- function(){#
+  bat <- bat.raw[1:50,]#
+  bat$N1 <- bat$AB.4. + bat$AB.5. + bat$AB.6.  # total number at-bats for 1st period#
+  bat$N2 <- bat$AB.7. + bat$AB.8. + bat$AB.9.10.  # total number at-bats for 2nd period#
+  bat$H1 <- bat$H.4. + bat$H.5. + bat$H.6.  # total number hits for 1st period#
+  bat$H2 <- bat$H.7. + bat$H.8. + bat$H.9.10.  # total number hits for 2nd period#
+  # bat$R1 <- bat$H1/bat$N1  # batting avg for 1st period#
+  # bat$R2 <- bat$H2/bat$N2  # batting avg for 2nd period#
+  # bat$X1 <- asin(  sqrt( (bat$H1+1/4)/(bat$N1+1/2) )  )  # transformed batting avg for 1st period#
+  # bat$X2 <- asin(  sqrt( (bat$H2+1/4)/(bat$N2+1/2) )  )  # transformed batting avg for 2nd period#
+  bat <- bat[bat$N1 > 10,]  # keep only records with N1>=11  #
+  bat$H1.perm <- NA#
+  for(i in 1:dim(bat)[1]){#
+    bat$H1.perm[i] <- rhyper(nn=1,m=bat$H1[i] + bat$H2[i],n=bat$N1[i] + bat$N2[i] -bat$H1[i] - bat$H2[i],k=bat$N1[i])#
+  }#
+  bat$H2.perm <- bat$H1 + bat$H2 - bat$H1.perm#
+  # head(cbind(bat$H1,bat$H1.perm,bat$H2,bat$H2.perm))#
+  bat$H1 <- bat$H1.perm #
+  bat$H2 <- bat$H2.perm #
+  bat$R1 <- bat$H1/bat$N1  # batting avg for 1st period#
+  bat$R2 <- bat$H2/bat$N2  # batting avg for 2nd period#
+  bat$X1 <- asin(  sqrt( (bat$H1+1/4)/(bat$N1+1/2) )  )  # transformed batting avg for 1st period#
+  bat$X2 <- asin(  sqrt( (bat$H2+1/4)/(bat$N2+1/2) )  )  # transformed batting avg for 2nd period#
+  bat <-  bat[,c('First.Name','Last.Name','Pitcher.','N1','N2','H1','H2','X1','X2')]#
+}#
+#
+N <- 3# num shuffling rounds#
+#
+## all batters#
+#
+tse.gm <- rep(NA,N)#
+tse.M <- rep(NA,N)#
+tse.SG <- rep(NA,N)#
+tse.gl <- rep(NA,N)#
+tse.gl.ol <- rep(NA,N)#
+tse.gl.sure <- rep(NA,N)#
+tse.gl.dynamic <- rep(NA,N)#
+path=getwd()#
+datapath=paste(path,'Brown_batting_data.txt',sep='/')#
+bat.raw <- read.table(datapath, header=TRUE, sep=",", quote="")#
+#
+for(j in 1:N){#
+  bat <- bat.perm()#
+  cat('Loop:',j)#
+  index=order(bat$N1,decreasing=TRUE)#
+  bat=bat[index,]#
+  # estimating TSE for various estimators#
+  # run: functions.R(current folder), functions_XKB.R#
+  ind <- bat$N2>10  # indicator for records with N2>=11 (among those with N1>=11)#
+  tse.hat.zero <- sum(   (  ( bat$X2 - bat$X1 )^2 - 1/ ( 4 * bat$N2 )  )[ind]   )#
+  # grand mean#
+  tse.hat.delta.gm <- sum(   (  ( bat$X2 - mean(bat$X1) )^2 - 1/ ( 4 * bat$N2 )  )[ind]   )#
+  tse.gm[j] <- tse.hat.delta.gm/tse.hat.zero#
+  # XKB theta.hat.M#
+  delta.M <- thetahat.M(bat$X1,1/(4 * bat$N1))#
+  tse.hat.delta.M <- sum(   (  ( bat$X2 - delta.M )^2 - 1/ ( 4 * bat$N2 )  )[ind]   )#
+  tse.M[j] <- tse.hat.delta.M/tse.hat.zero#
+  # XKB theta.hat.SG#
+  delta.SG <- thetahat.SG(bat$X1,1/(4 * bat$N1))#
+  tse.hat.delta.SG <- sum(   (  ( bat$X2 - delta.SG )^2 - 1/ ( 4 * bat$N2 )  )[ind]   )#
+  tse.SG[j] <- tse.hat.delta.SG/tse.hat.zero#
+  # group-linear  #
+    # num bins = n^1/3#
+  delta.gl <- grouplinear(x=bat$X1, v=1/(4 * bat$N1))#
+  tse.hat.delta.gl <- sum(   (  ( bat$X2 - delta.gl )^2 - 1/ ( 4 * bat$N2 )  )[ind]   )#
+  tse.gl[j] <- tse.hat.delta.gl/tse.hat.zero#
+    # oracle#
+  rel.tse.breaks <- rep(NA,20)#
+  delta.gl <- spher(x=bat$X1, v=1/(4 * bat$N1))#
+  tse.hat.delta.gl <- sum(   (  ( bat$X2 - delta.gl )^2 - 1/ ( 4 * bat$N2 )  )[ind]   )#
+  rel.tse.breaks[1] <- tse.hat.delta.gl/tse.hat.zero#
+  for(i in 2:20){#
+    delta.gl <- grouplinear(x=bat$X1, v=1/(4 * bat$N1),nbreak = i)#
+    tse.hat.delta.gl <- sum(   (  ( bat$X2 - delta.gl )^2 - 1/ ( 4 * bat$N2 )  )[ind]   )#
+    rel.tse.breaks[i] <- tse.hat.delta.gl/tse.hat.zero#
+  }#
+  tse.gl.ol[j] <- min(rel.tse.breaks)#
+#   k.ol <- which.min(rel.tse.breaks)  #
+    # URE#
+  # i) split into k intervals of equal length on log(v)#
+  min.diff <- min(diff( sort(log( 1/(4 * bat$N1) )) )[diff( sort(log( 1/(4 * bat$N1) )) )>0])  # min_{i,j: v_i != v_j} |v_i-v_j|#
+  kmax <- ceiling( diff(range(log( 1/(4 * bat$N1) )))/min.diff )#
+  sure.vec <- rep(NA,kmax)#
+  sure.vec[1] <- sure.spher(bat$X1,1/(4 * bat$N1))#
+  for (k in 2:30){#
+    sure.vec[k] <- sure.grouplinear(bat$X1,1/(4 * bat$N1),nbreak=k)#
+  }#
+  khat.sure <- which.min(sure.vec)#
+  delta.gl.sure <- if(khat.sure>1) grouplinear( bat$X1,1/(4 * bat$N1),nbreak=khat.sure) else spher( bat$X1,1/(4 * bat$N1))#
+  tse.hat.delta.gl.sure <- sum(   (  ( bat$X2 - delta.gl.sure )^2 - 1/ ( 4 * bat$N2 )  )[ind]   )#
+  tse.gl.sure[j] <- tse.hat.delta.gl.sure/tse.hat.zero#
+#dynamic#
+c=DynamicSure(bat$X1,1/(4 * bat$N1))#
+position=c[[1]]#
+n=dim(position)[1]#
+group=partition(position,1,n)#
+group=c(0, group,n)#
+group=unique(group)#
+delta.dynamic=dynamic.grouplinear(bat$X1,1/(4 * bat$N1),group)#
+tse.hat.delta.dynamic <- sum(   (  ( bat$X2 - delta.dynamic )^2 - 1/ ( 4 * bat$N2 )  )[ind]   )#
+tse.gl.dynamic[j] =tse.hat.delta.dynamic/tse.hat.zero#
+#
+}#
+#
+tse.gm.all <- mean(tse.gm)#
+tse.M.all <- mean(tse.M)#
+tse.SG.all <- mean(tse.SG)#
+tse.gl.all <- mean(tse.gl)#
+tse.gl.ol.all <- mean(tse.gl.ol)#
+tse.gl.sure.all <- mean(tse.gl.sure)#
+tse.gl.dynamic.all <- mean(tse.gl.dynamic)#
+average=c(tse.gm.all,tse.M.all,tse.SG.all,tse.gl.all,tse.gl.ol.all,tse.gl.sure.all,tse.gl.dynamic.all )#
+error=cbind(tse.gm,tse.M,tse.SG,tse.gl,tse.gl.ol,tse.gl.sure,tse.gl.dynamic)#
+write.table(average, "~/desktop/average.txt",sep="\t",row.names=FALSE)#
+write.table(error, "~/desktop/error.txt",sep="\t",row.names=FALSE)
+bat.perm <- function(){#
+  bat <- bat.raw[1:50,]#
+  bat$N1 <- bat$AB.4. + bat$AB.5. + bat$AB.6.  # total number at-bats for 1st period#
+  bat$N2 <- bat$AB.7. + bat$AB.8. + bat$AB.9.10.  # total number at-bats for 2nd period#
+  bat$H1 <- bat$H.4. + bat$H.5. + bat$H.6.  # total number hits for 1st period#
+  bat$H2 <- bat$H.7. + bat$H.8. + bat$H.9.10.  # total number hits for 2nd period#
+  # bat$R1 <- bat$H1/bat$N1  # batting avg for 1st period#
+  # bat$R2 <- bat$H2/bat$N2  # batting avg for 2nd period#
+  # bat$X1 <- asin(  sqrt( (bat$H1+1/4)/(bat$N1+1/2) )  )  # transformed batting avg for 1st period#
+  # bat$X2 <- asin(  sqrt( (bat$H2+1/4)/(bat$N2+1/2) )  )  # transformed batting avg for 2nd period#
+  bat <- bat[bat$N1 > 10,]  # keep only records with N1>=11  #
+  bat$H1.perm <- NA#
+  for(i in 1:dim(bat)[1]){#
+    bat$H1.perm[i] <- rhyper(nn=1,m=bat$H1[i] + bat$H2[i],n=bat$N1[i] + bat$N2[i] -bat$H1[i] - bat$H2[i],k=bat$N1[i])#
+  }#
+  bat$H2.perm <- bat$H1 + bat$H2 - bat$H1.perm#
+  # head(cbind(bat$H1,bat$H1.perm,bat$H2,bat$H2.perm))#
+  bat$H1 <- bat$H1.perm #
+  bat$H2 <- bat$H2.perm #
+  bat$R1 <- bat$H1/bat$N1  # batting avg for 1st period#
+  bat$R2 <- bat$H2/bat$N2  # batting avg for 2nd period#
+  bat$X1 <- asin(  sqrt( (bat$H1+1/4)/(bat$N1+1/2) )  )  # transformed batting avg for 1st period#
+  bat$X2 <- asin(  sqrt( (bat$H2+1/4)/(bat$N2+1/2) )  )  # transformed batting avg for 2nd period#
+  bat <-  bat[,c('First.Name','Last.Name','Pitcher.','N1','N2','H1','H2','X1','X2')]#
+}#
+#
+N <- 3# num shuffling rounds#
+if(!exists("foo", mode="function")) source("functions.R")#
+if(!exists("foo", mode="function")) source("functions_XKB.R")#
+if(!exists("foo", mode="function")) source("dynamic_sure.R")#
+#
+## all batters#
+#
+tse.gm <- rep(NA,N)#
+tse.M <- rep(NA,N)#
+tse.SG <- rep(NA,N)#
+tse.gl <- rep(NA,N)#
+tse.gl.ol <- rep(NA,N)#
+tse.gl.sure <- rep(NA,N)#
+tse.gl.dynamic <- rep(NA,N)#
+path=getwd()#
+datapath=paste(path,'Brown_batting_data.txt',sep='/')#
+bat.raw <- read.table(datapath, header=TRUE, sep=",", quote="")#
+#
+for(j in 1:N){#
+  bat <- bat.perm()#
+  cat('Loop:',j)#
+  index=order(bat$N1,decreasing=TRUE)#
+  bat=bat[index,]#
+  # estimating TSE for various estimators#
+  # run: functions.R(current folder), functions_XKB.R#
+  ind <- bat$N2>10  # indicator for records with N2>=11 (among those with N1>=11)#
+  tse.hat.zero <- sum(   (  ( bat$X2 - bat$X1 )^2 - 1/ ( 4 * bat$N2 )  )[ind]   )#
+  # grand mean#
+  tse.hat.delta.gm <- sum(   (  ( bat$X2 - mean(bat$X1) )^2 - 1/ ( 4 * bat$N2 )  )[ind]   )#
+  tse.gm[j] <- tse.hat.delta.gm/tse.hat.zero#
+  # XKB theta.hat.M#
+  delta.M <- thetahat.M(bat$X1,1/(4 * bat$N1))#
+  tse.hat.delta.M <- sum(   (  ( bat$X2 - delta.M )^2 - 1/ ( 4 * bat$N2 )  )[ind]   )#
+  tse.M[j] <- tse.hat.delta.M/tse.hat.zero#
+  # XKB theta.hat.SG#
+  delta.SG <- thetahat.SG(bat$X1,1/(4 * bat$N1))#
+  tse.hat.delta.SG <- sum(   (  ( bat$X2 - delta.SG )^2 - 1/ ( 4 * bat$N2 )  )[ind]   )#
+  tse.SG[j] <- tse.hat.delta.SG/tse.hat.zero#
+  # group-linear  #
+    # num bins = n^1/3#
+  delta.gl <- grouplinear(x=bat$X1, v=1/(4 * bat$N1))#
+  tse.hat.delta.gl <- sum(   (  ( bat$X2 - delta.gl )^2 - 1/ ( 4 * bat$N2 )  )[ind]   )#
+  tse.gl[j] <- tse.hat.delta.gl/tse.hat.zero#
+    # oracle#
+  rel.tse.breaks <- rep(NA,20)#
+  delta.gl <- spher(x=bat$X1, v=1/(4 * bat$N1))#
+  tse.hat.delta.gl <- sum(   (  ( bat$X2 - delta.gl )^2 - 1/ ( 4 * bat$N2 )  )[ind]   )#
+  rel.tse.breaks[1] <- tse.hat.delta.gl/tse.hat.zero#
+  for(i in 2:20){#
+    delta.gl <- grouplinear(x=bat$X1, v=1/(4 * bat$N1),nbreak = i)#
+    tse.hat.delta.gl <- sum(   (  ( bat$X2 - delta.gl )^2 - 1/ ( 4 * bat$N2 )  )[ind]   )#
+    rel.tse.breaks[i] <- tse.hat.delta.gl/tse.hat.zero#
+  }#
+  tse.gl.ol[j] <- min(rel.tse.breaks)#
+#   k.ol <- which.min(rel.tse.breaks)  #
+    # URE#
+  # i) split into k intervals of equal length on log(v)#
+  min.diff <- min(diff( sort(log( 1/(4 * bat$N1) )) )[diff( sort(log( 1/(4 * bat$N1) )) )>0])  # min_{i,j: v_i != v_j} |v_i-v_j|#
+  kmax <- ceiling( diff(range(log( 1/(4 * bat$N1) )))/min.diff )#
+  sure.vec <- rep(NA,kmax)#
+  sure.vec[1] <- sure.spher(bat$X1,1/(4 * bat$N1))#
+  for (k in 2:30){#
+    sure.vec[k] <- sure.grouplinear(bat$X1,1/(4 * bat$N1),nbreak=k)#
+  }#
+  khat.sure <- which.min(sure.vec)#
+  delta.gl.sure <- if(khat.sure>1) grouplinear( bat$X1,1/(4 * bat$N1),nbreak=khat.sure) else spher( bat$X1,1/(4 * bat$N1))#
+  tse.hat.delta.gl.sure <- sum(   (  ( bat$X2 - delta.gl.sure )^2 - 1/ ( 4 * bat$N2 )  )[ind]   )#
+  tse.gl.sure[j] <- tse.hat.delta.gl.sure/tse.hat.zero#
+#dynamic#
+c=DynamicSure(bat$X1,1/(4 * bat$N1))#
+position=c[[1]]#
+n=dim(position)[1]#
+group=partition(position,1,n)#
+group=c(0, group,n)#
+group=unique(group)#
+delta.dynamic=dynamic.grouplinear(bat$X1,1/(4 * bat$N1),group)#
+tse.hat.delta.dynamic <- sum(   (  ( bat$X2 - delta.dynamic )^2 - 1/ ( 4 * bat$N2 )  )[ind]   )#
+tse.gl.dynamic[j] =tse.hat.delta.dynamic/tse.hat.zero#
+#
+}#
+#
+tse.gm.all <- mean(tse.gm)#
+tse.M.all <- mean(tse.M)#
+tse.SG.all <- mean(tse.SG)#
+tse.gl.all <- mean(tse.gl)#
+tse.gl.ol.all <- mean(tse.gl.ol)#
+tse.gl.sure.all <- mean(tse.gl.sure)#
+tse.gl.dynamic.all <- mean(tse.gl.dynamic)#
+average=c(tse.gm.all,tse.M.all,tse.SG.all,tse.gl.all,tse.gl.ol.all,tse.gl.sure.all,tse.gl.dynamic.all )#
+error=cbind(tse.gm,tse.M,tse.SG,tse.gl,tse.gl.ol,tse.gl.sure,tse.gl.dynamic)#
+write.table(average, "~/desktop/average.txt",sep="\t",row.names=FALSE)#
+write.table(error, "~/desktop/error.txt",sep="\t",row.names=FALSE)
+error
+average
+col.names(err)
+col.names(error)
+col(error)
+names(error)
+name(error)
+names(error)
+error
+colnames(error)
+tse.gl.sure.all <- mean(tse.gl.sure)
+bat.perm <- function(){#
+  bat <- bat.raw[1:50,]#
+  bat$N1 <- bat$AB.4. + bat$AB.5. + bat$AB.6.  # total number at-bats for 1st period#
+  bat$N2 <- bat$AB.7. + bat$AB.8. + bat$AB.9.10.  # total number at-bats for 2nd period#
+  bat$H1 <- bat$H.4. + bat$H.5. + bat$H.6.  # total number hits for 1st period#
+  bat$H2 <- bat$H.7. + bat$H.8. + bat$H.9.10.  # total number hits for 2nd period#
+  # bat$R1 <- bat$H1/bat$N1  # batting avg for 1st period#
+  # bat$R2 <- bat$H2/bat$N2  # batting avg for 2nd period#
+  # bat$X1 <- asin(  sqrt( (bat$H1+1/4)/(bat$N1+1/2) )  )  # transformed batting avg for 1st period#
+  # bat$X2 <- asin(  sqrt( (bat$H2+1/4)/(bat$N2+1/2) )  )  # transformed batting avg for 2nd period#
+  bat <- bat[bat$N1 > 10,]  # keep only records with N1>=11  #
+  bat$H1.perm <- NA#
+  for(i in 1:dim(bat)[1]){#
+    bat$H1.perm[i] <- rhyper(nn=1,m=bat$H1[i] + bat$H2[i],n=bat$N1[i] + bat$N2[i] -bat$H1[i] - bat$H2[i],k=bat$N1[i])#
+  }#
+  bat$H2.perm <- bat$H1 + bat$H2 - bat$H1.perm#
+  # head(cbind(bat$H1,bat$H1.perm,bat$H2,bat$H2.perm))#
+  bat$H1 <- bat$H1.perm #
+  bat$H2 <- bat$H2.perm #
+  bat$R1 <- bat$H1/bat$N1  # batting avg for 1st period#
+  bat$R2 <- bat$H2/bat$N2  # batting avg for 2nd period#
+  bat$X1 <- asin(  sqrt( (bat$H1+1/4)/(bat$N1+1/2) )  )  # transformed batting avg for 1st period#
+  bat$X2 <- asin(  sqrt( (bat$H2+1/4)/(bat$N2+1/2) )  )  # transformed batting avg for 2nd period#
+  bat <-  bat[,c('First.Name','Last.Name','Pitcher.','N1','N2','H1','H2','X1','X2')]#
+}#
+#
+N <- 3# num shuffling rounds#
+if(!exists("foo", mode="function")) source("functions.R")#
+if(!exists("foo", mode="function")) source("functions_XKB.R")#
+if(!exists("foo", mode="function")) source("dynamic_sure.R")#
+#
+## all batters#
+#
+tse.gm <- rep(NA,N)#
+tse.M <- rep(NA,N)#
+tse.SG <- rep(NA,N)#
+tse.gl <- rep(NA,N)#
+tse.gl.ol <- rep(NA,N)#
+tse.gl.sure <- rep(NA,N)#
+tse.gl.dynamic <- rep(NA,N)#
+path=getwd()#
+datapath=paste(path,'Brown_batting_data.txt',sep='/')#
+bat.raw <- read.table(datapath, header=TRUE, sep=",", quote="")#
+#
+for(j in 1:N){#
+  bat <- bat.perm()#
+  cat('Loop:',j)#
+  index=order(bat$N1,decreasing=TRUE)#
+  bat=bat[index,]#
+  # estimating TSE for various estimators#
+  # run: functions.R(current folder), functions_XKB.R#
+  ind <- bat$N2>10  # indicator for records with N2>=11 (among those with N1>=11)#
+  tse.hat.zero <- sum(   (  ( bat$X2 - bat$X1 )^2 - 1/ ( 4 * bat$N2 )  )[ind]   )#
+  # grand mean#
+  tse.hat.delta.gm <- sum(   (  ( bat$X2 - mean(bat$X1) )^2 - 1/ ( 4 * bat$N2 )  )[ind]   )#
+  tse.gm[j] <- tse.hat.delta.gm/tse.hat.zero#
+  # XKB theta.hat.M#
+  delta.M <- thetahat.M(bat$X1,1/(4 * bat$N1))#
+  tse.hat.delta.M <- sum(   (  ( bat$X2 - delta.M )^2 - 1/ ( 4 * bat$N2 )  )[ind]   )#
+  tse.M[j] <- tse.hat.delta.M/tse.hat.zero#
+  # XKB theta.hat.SG#
+  delta.SG <- thetahat.SG(bat$X1,1/(4 * bat$N1))#
+  tse.hat.delta.SG <- sum(   (  ( bat$X2 - delta.SG )^2 - 1/ ( 4 * bat$N2 )  )[ind]   )#
+  tse.SG[j] <- tse.hat.delta.SG/tse.hat.zero#
+  # group-linear  #
+    # num bins = n^1/3#
+  delta.gl <- grouplinear(x=bat$X1, v=1/(4 * bat$N1))#
+  tse.hat.delta.gl <- sum(   (  ( bat$X2 - delta.gl )^2 - 1/ ( 4 * bat$N2 )  )[ind]   )#
+  tse.gl[j] <- tse.hat.delta.gl/tse.hat.zero#
+    # oracle#
+  rel.tse.breaks <- rep(NA,20)#
+  delta.gl <- spher(x=bat$X1, v=1/(4 * bat$N1))#
+  tse.hat.delta.gl <- sum(   (  ( bat$X2 - delta.gl )^2 - 1/ ( 4 * bat$N2 )  )[ind]   )#
+  rel.tse.breaks[1] <- tse.hat.delta.gl/tse.hat.zero#
+  for(i in 2:20){#
+    delta.gl <- grouplinear(x=bat$X1, v=1/(4 * bat$N1),nbreak = i)#
+    tse.hat.delta.gl <- sum(   (  ( bat$X2 - delta.gl )^2 - 1/ ( 4 * bat$N2 )  )[ind]   )#
+    rel.tse.breaks[i] <- tse.hat.delta.gl/tse.hat.zero#
+  }#
+  tse.gl.ol[j] <- min(rel.tse.breaks)#
+#   k.ol <- which.min(rel.tse.breaks)  #
+    # URE#
+  # i) split into k intervals of equal length on log(v)#
+  min.diff <- min(diff( sort(log( 1/(4 * bat$N1) )) )[diff( sort(log( 1/(4 * bat$N1) )) )>0])  # min_{i,j: v_i != v_j} |v_i-v_j|#
+  kmax <- ceiling( diff(range(log( 1/(4 * bat$N1) )))/min.diff )#
+  sure.vec <- rep(NA,kmax)#
+  sure.vec[1] <- sure.spher(bat$X1,1/(4 * bat$N1))#
+  for (k in 2:30){#
+    sure.vec[k] <- sure.grouplinear(bat$X1,1/(4 * bat$N1),nbreak=k)#
+  }#
+  khat.sure <- which.min(sure.vec)#
+  delta.gl.sure <- if(khat.sure>1) grouplinear( bat$X1,1/(4 * bat$N1),nbreak=khat.sure) else spher( bat$X1,1/(4 * bat$N1))#
+  tse.hat.delta.gl.sure <- sum(   (  ( bat$X2 - delta.gl.sure )^2 - 1/ ( 4 * bat$N2 )  )[ind]   )#
+  tse.gl.sure[j] <- tse.hat.delta.gl.sure/tse.hat.zero#
+#dynamic#
+c=DynamicSure(bat$X1,1/(4 * bat$N1))#
+position=c[[1]]#
+n=dim(position)[1]#
+group=partition(position,1,n)#
+group=c(0, group,n)#
+group=unique(group)#
+delta.dynamic=dynamic.grouplinear(bat$X1,1/(4 * bat$N1),group)#
+tse.hat.delta.dynamic <- sum(   (  ( bat$X2 - delta.dynamic )^2 - 1/ ( 4 * bat$N2 )  )[ind]   )#
+tse.gl.dynamic[j] =tse.hat.delta.dynamic/tse.hat.zero#
+#
+}#
+#
+tse.gm.all <- mean(tse.gm)#
+tse.M.all <- mean(tse.M)#
+tse.SG.all <- mean(tse.SG)#
+tse.gl.all <- mean(tse.gl)#
+tse.gl.ol.all <- mean(tse.gl.ol)#
+tse.gl.sure.all <- mean(tse.gl.sure)#
+tse.gl.dynamic.all <- mean(tse.gl.dynamic)#
+average=c(tse.gm.all,tse.M.all,tse.SG.all,tse.gl.all,tse.gl.ol.all,tse.gl.sure.all,tse.gl.dynamic.all )#
+error=cbind(tse.gm,tse.M,tse.SG,tse.gl,tse.gl.ol,tse.gl.sure,tse.gl.dynamic)#
+#
+names=colnames(error)#
+write.table(average, "~/desktop/average.txt",sep="\t",row.names=names)#
+write.table(error, "~/desktop/error.txt",sep="\t",row.names=FALSE)
+error
+average
+names
