@@ -26,7 +26,7 @@ bat.perm <- function(){
   bat <-  bat[,c('First.Name','Last.Name','Pitcher.','N1','N2','H1','H2','X1','X2')]
 }
 
-N <- 3# num shuffling rounds
+N <- 1# num shuffling rounds
 if(!exists("foo", mode="function")) source("functions.R")
 if(!exists("foo", mode="function")) source("functions_XKB.R")
 if(!exists("foo", mode="function")) source("dynamic_sure.R")
@@ -34,6 +34,7 @@ if(!exists("foo", mode="function")) source("dynamic_sure.R")
 ## all batters
 
 tse.gm <- rep(NA,N)
+tse.JS <- rep(NA,N)
 tse.M <- rep(NA,N)
 tse.SG <- rep(NA,N)
 tse.gl <- rep(NA,N)
@@ -63,6 +64,11 @@ for(j in 1:N){
   # grand mean
   tse.hat.delta.gm <- sum(   (  ( bat$X2 - mean(bat$X1) )^2 - 1/ ( 4 * bat$N2 )  )[ind]   )
   tse.gm[j] <- tse.hat.delta.gm/tse.hat.zero
+  
+  # James-Stein
+  delta.JS <- JS(bat$X1,1/(4 * bat$N1))
+  tse.hat.delta.JS <- sum(   (  ( bat$X2 - delta.JS )^2 - 1/ ( 4 * bat$N2 )  )[ind]   )
+  tse.JS[j] <- tse.hat.delta.JS/tse.hat.zero
   
   # XKB theta.hat.M
   delta.M <- thetahat.M(bat$X1,1/(4 * bat$N1))
@@ -113,21 +119,33 @@ delta.dynamic=GroupSure(bat$X1,1/(4 * bat$N1))
 tse.hat.delta.dynamic <- sum(   (  ( bat$X2 - delta.dynamic )^2 - 1/ ( 4 * bat$N2 )  )[ind]   )
 tse.gl.dynamic[j] =tse.hat.delta.dynamic/tse.hat.zero
 
+   #position=c[[1]]
+   #n=dim(position)[1]
+   #group=partition(position,1,n)
+   #group=c(0, group,n)
+   #group=unique(group)  
 
 delta.dynamicMin=GroupSureMin(bat$X1,1/(4 * bat$N1),40)
 tse.hat.delta.dynamicMin <- sum(   (  ( bat$X2 - delta.dynamicMin )^2 - 1/ ( 4 * bat$N2 )  )[ind]   )
 tse.gl.dynamicMin[j] =tse.hat.delta.dynamicMin/tse.hat.zero
+#cmin=DynamicSureMin(bat$X1,1/(4 * bat$N1),40)
+#position=cmin[[1]]
+#n=dim(position)[1]
+#group=partition(position,1,n)
+#group=c(0, group,n)
+#group=unique(group)
 
 delta.dynamicMin2=GroupSureMin(bat$X1,1/(4 * bat$N1),50)
 tse.hat.delta.dynamicMin2 <- sum(   (  ( bat$X2 - delta.dynamicMin2 )^2 - 1/ ( 4 * bat$N2 )  )[ind]   )
-tse.gl.dynamicMin2[j] =tse.hat.delta.dynamicMin/tse.hat.zero
+tse.gl.dynamicMin2[j] =tse.hat.delta.dynamicMin2/tse.hat.zero
 
 delta.dynamicMin3=GroupSureMin(bat$X1,1/(4 * bat$N1),60)
 tse.hat.delta.dynamicMin3 <- sum(   (  ( bat$X2 - delta.dynamicMin3 )^2 - 1/ ( 4 * bat$N2 )  )[ind]   )
-tse.gl.dynamicMin3[j] =tse.hat.delta.dynamicMin/tse.hat.zero
+tse.gl.dynamicMin3[j] =tse.hat.delta.dynamicMin3/tse.hat.zero
 }
 
 tse.gm.all <- mean(tse.gm)
+tse.JS.all <- mean(tse.JS)
 tse.M.all <- mean(tse.M)
 tse.SG.all <- mean(tse.SG)
 tse.gl.all <- mean(tse.gl)
@@ -139,9 +157,19 @@ tse.gl.dynamicMin2.all <- mean(tse.gl.dynamicMin2)
 tse.gl.dynamicMin3.all <- mean(tse.gl.dynamicMin3)
 
 
-average=c(tse.gm.all,tse.M.all,tse.SG.all,tse.gl.all,tse.gl.ol.all,tse.gl.sure.all,tse.gl.dynamic.all,tse.gl.dynamicMin.all,tse.gl.dynamicMin2.all,tse.gl.dynamicMin3.all )
-error=cbind(tse.gm,tse.M,tse.SG,tse.gl,tse.gl.ol,tse.gl.sure,tse.gl.dynamic,tse.gl.dynamicMin,tse.gl.dynamicMin2,tse.gl.dynamicMin3)
+average=c(tse.gm.all,tse.JS.all,tse.M.all,tse.SG.all,tse.gl.all,tse.gl.ol.all,tse.gl.sure.all,tse.gl.dynamic.all,tse.gl.dynamicMin.all,tse.gl.dynamicMin2.all,tse.gl.dynamicMin3.all )
+error=cbind(tse.gm,tse.JS,tse.M,tse.SG,tse.gl,tse.gl.ol,tse.gl.sure,tse.gl.dynamic,tse.gl.dynamicMin,tse.gl.dynamicMin2,tse.gl.dynamicMin3)
+
 
 names=colnames(error)
 write.table(average, "~/desktop/average.txt",sep="\t",row.names=names)
 write.table(error, "~/desktop/error.txt",sep="\t",row.names=FALSE)
+
+
+
+
+
+
+
+
+

@@ -84,8 +84,6 @@ tse.hat.delta.gl.sure/tse.hat.zero  # 0.34
 
 
 
-
-
   # oracle
 rel.tse.breaks <- rep(NA,20)
 delta.gl <- spher(x=bat$X1, v=1/(4 * bat$N1))
@@ -107,7 +105,7 @@ k.ol <- which.min(rel.tse.breaks) # 10
 
 
 
-# Analysis with covariates (Using subspaces shrinkage as in Tan's ms)
+# Analysis with covariates (Using subspaces shrinkage as in Tan's-2015-Steinized ms)
   # 1 + AB + pitcher
 # head( cbind(bat$Pitcher.,bat$N1) )
 lm1 <- lm(bat$X1 ~ as.factor(bat$Pitcher.) + bat$N1, weights = 4 * bat$N1)

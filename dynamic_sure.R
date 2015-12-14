@@ -7,7 +7,7 @@ DynamicSure=function(x,v){
 		b[i,i]=v[i]
 	}
 	for (l in 1:(n-1)){
-		if (l %% 20==0){
+		if (l %% 100==0){
 		    print(l)
 		}
 		for (i in 1:(n-l)){
@@ -32,6 +32,7 @@ DynamicSure=function(x,v){
 }
 
 DynamicSureMin=function(x,v,d=40){
+	d=floor(d)
     n <- length(x)
     a=matrix(rep(0,n*n),ncol=n) ##separation
 	b=a ##value
@@ -41,7 +42,7 @@ DynamicSureMin=function(x,v,d=40){
 		b[i,j]=sure.spher(x[i:j], v[i:j])
 	}
 	for (l in d:(n-1)){
-		if (l %% 20==0){
+		if (l %% 100==0){
 		    print(l)
 		}
 		for (i in 1:(n-l)){
@@ -83,6 +84,9 @@ partition=function(position,i,j){
 
 
 
+
+#################shrink towards the mean in the bin
+
 dynamic.grouplinear <- function(x,v,group){ #nbreak=num of bins
 	ngroup <- length(group)
 	n=length(x)
@@ -105,6 +109,7 @@ GroupSure<- function(x,v){
 }
 
 GroupSureMin<- function(x,v,d){ 
+   d=floor(d)
    c=DynamicSureMin(x,v,d)
    position=c[[1]]
    n=dim(position)[1]
@@ -112,5 +117,41 @@ GroupSureMin<- function(x,v,d){
    group=c(0, group,n)
    group=unique(group)
    est=dynamic.grouplinear(x,v,group)
+   return(est)
+}
+
+#################shrink towards zero
+dynamic.grouplinear.zero <- function(x,v,group){ #nbreak=num of bins
+	ngroup <- length(group)
+	n=length(x)
+	est=rep(0,n)
+	for (i in 1:(ngroup-1)){
+		est[(group[i]+1):group[i+1]]=spher.zero(x[(group[i]+1):group[i+1]],v[(group[i]+1):group[i+1]])
+	}
+	est
+}
+
+
+GroupSure.zero<- function(x,v){ 
+   c=DynamicSure(x,v)
+   position=c[[1]]
+   n=dim(position)[1]
+   group=partition(position,1,n)
+   group=c(0, group,n)
+   group=unique(group)
+   est=dynamic.grouplinear.zero(x,v,group)
+   return(est)
+}
+
+
+GroupSureMin.zero<- function(x,v,d){ 
+   d=floor(d)
+   c=DynamicSureMin(x,v,d)
+   position=c[[1]]
+   n=dim(position)[1]
+   group=partition(position,1,n)
+   group=c(0, group,n)
+   group=unique(group)
+   est=dynamic.grouplinear.zero(x,v,group)
    return(est)
 }

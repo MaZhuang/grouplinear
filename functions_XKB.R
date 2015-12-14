@@ -72,6 +72,14 @@ sure.G <- function(lambda,x,v){
 # y <- sapply(lambda.vec,sure.G,x=x,v=v)
 # plot(lambda.vec,y,pch=16,cex=.5)
 
+# extended James-Stein (equation (7.3) in Xie et al, 2012)
+JS <- function(X,A){
+  p <- length(X)
+  muhat <- sum( X*(1/A) )/sum(1/A)
+  b <- 1 - (p-3) / sum( (X-muhat)^2/A )
+  return( muhat + max(0,b) * (X-muhat) )
+}
+
 
 
 
