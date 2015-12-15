@@ -71,8 +71,7 @@ grouplinear.zero <- function( x,v,nbreak=floor(length(x)^(1/3)) ){  # default: b
 # mean( (grouplinear.zero(x,v)-theta)^2 )   
 
 
-## sure for grouplinear estimator
-
+## sure for grouplinear estimator (these are estimates of risk -- not of theta)
 sure.spher <- function(x.,v.){
   n. <- length(x.)
  # cstar <- max( 1-2*( max(v.)/mean(v.) )/(n.-1), 0) ##modified
@@ -97,6 +96,7 @@ sure.spher <- function(x.,v.){
 
 
 sure.spher.zero <- function(x.,v.){
+  n. <- length(x.)
   if (n.==0) {0 
   }else if ( (n.==1) | (var(x.)==0) ) {sum(v.) 
   }else {	# can set sure to an arbitrary value if var(x.)=0, since this event is of measure zero
@@ -109,7 +109,7 @@ sure.spher.zero <- function(x.,v.){
 }
 
 
-sure.grouplinear <- function(x,v,nbreak){ #nbreak=num of bins
+sure <- function(nbreak,x,v){ #nbreak=num of bins
 	n <- length(x)
 	splitby=cut(log(v),breaks=nbreak)
 	xsub <- split(x,splitby,drop=T)
@@ -118,7 +118,7 @@ sure.grouplinear <- function(x,v,nbreak){ #nbreak=num of bins
 	sum(suresub)/n
 }
 
-sure.grouplinear.zero <- function(x,v,nbreak){ #nbreak=num of bins
+sure.zero <- function(nbreak,x,v){ #nbreak=num of bins
   n <- length(x)
   splitby=cut(log(v),breaks=nbreak)
   xsub <- split(x,splitby,drop=T)
@@ -127,4 +127,17 @@ sure.grouplinear.zero <- function(x,v,nbreak){ #nbreak=num of bins
   sum(suresub)/n
 }
 
+
+## sure grouplinear (equal-bins)
+grouplinear.sure <- function(x,v,kmax=10){ #kmax is maximum bin-count to search over
+  sure.vec <- c(sure.spher(x,v), sapply(X=2:kmax,FUN=sure,x,v))
+  khat.sure <- which.min(sure.vec)
+  est <- if(khat.sure>1) grouplinear( x,v,nbreak=khat.sure) else spher(x,v)
+}
+
+grouplinear.sure.zero <- function(x,v,kmax=10){ #kmax is maximum bin-count to search over
+  sure.vec <- c(sure.spher.zero(x,v), sapply(X=2:kmax,FUN=sure.zero,x,v))
+  khat.sure <- which.min(sure.vec)
+  est <- if(khat.sure>1) grouplinear( x,v,nbreak=khat.sure) else spher(x,v)
+}
 

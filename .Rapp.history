@@ -1,5 +1,3 @@
-a=read.table('error.txt',header=T,sep='\t')
-a=read.table('~/desktop/error.txt',header=T,sep='\t')
 a
 bat.perm <- function(){#
   bat <- bat.raw[1:50,]#
@@ -3252,3 +3250,7 @@ error=cbind(tse.gm,tse.JS,tse.M,tse.SG,tse.gl,tse.gl.ol,tse.gl.sure,tse.gl.dynam
 names=colnames(error)#
 write.table(average, "~/desktop/average.txt",sep="\t",row.names=names)#
 write.table(error, "~/desktop/error.txt",sep="\t",row.names=FALSE)
+path=getwd() #setwd("/Users/assafweinstein/Dropbox/Research/Cunhui/Code/grouplinear_Zhuang")#
+datapath=paste(path,'Brown_batting_data.txt',sep='/')#
+bat.raw <- read.table(datapath, header=TRUE, sep=",", quote="")
+path

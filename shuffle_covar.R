@@ -37,6 +37,7 @@ tse.JS <- rep(NA,N)
 tse.M <- rep(NA,N)
 tse.SG <- rep(NA,N)
 tse.gl <- rep(NA,N)
+tse.gl.sure <- rep(NA,N)
 tse.gl.dynamic <- rep(NA,N)
 tse.gl.dynamicMin <- rep(NA,N)
 tse.gl.dynamicMin2 <- rep(NA,N)
@@ -56,7 +57,7 @@ tse.gl.dynamicMin3.interaction <- rep(NA,N)
 
 
 
-path=getwd()
+path=getwd() # setwd("/Users/assafweinstein/Dropbox/Research/Cunhui/Code/grouplinear_Zhuang")
 datapath=paste(path,'Brown_batting_data.txt',sep='/')
 bat.raw <- read.table(datapath, header=TRUE, sep=",", quote="")
 
@@ -97,33 +98,11 @@ for(j in 1:N){
   tse.delta.gl <- sum(   (  ( bat$X2 - delta.gl )^2 - 1/ ( 4 * bat$N2 )  )[ind]   )
   tse.gl[j] <- tse.delta.gl/tse.zero
   
-#   # oracle
-#   rel.tse.breaks <- rep(NA,20)
-#   delta.gl <- spher(x=bat$X1, v=1/(4 * bat$N1))
-#   tse.delta.gl <- sum(   (  ( bat$X2 - delta.gl )^2 - 1/ ( 4 * bat$N2 )  )[ind]   )
-#   rel.tse.breaks[1] <- tse.delta.gl/tse.zero
-#   for(i in 2:20){
-#     delta.gl <- grouplinear(x=bat$X1, v=1/(4 * bat$N1),nbreak = i)
-#     tse.delta.gl <- sum(   (  ( bat$X2 - delta.gl )^2 - 1/ ( 4 * bat$N2 )  )[ind]   )
-#     rel.tse.breaks[i] <- tse.delta.gl/tse.zero
-#   }
-#   tse.gl.ol[j] <- min(rel.tse.breaks)
-#   #   k.ol <- which.min(rel.tse.breaks)  
-# 
-#   # URE
-#   # i) split into k intervals of equal length on log(v)
-#   min.diff <- min(diff( sort(log( 1/(4 * bat$N1) )) )[diff( sort(log( 1/(4 * bat$N1) )) )>0])  # min_{i,j: v_i != v_j} |v_i-v_j|
-#   kmax <- ceiling( diff(range(log( 1/(4 * bat$N1) )))/min.diff )
-#   sure.vec <- rep(NA,kmax)
-#   
-#   sure.vec[1] <- sure.spher(bat$X1,1/(4 * bat$N1))
-#   for (k in 2:30){
-#     sure.vec[k] <- sure.grouplinear(bat$X1,1/(4 * bat$N1),nbreak=k)
-#   }
-#   khat.sure <- which.min(sure.vec)
-#   delta.gl.sure <- if(khat.sure>1) grouplinear( bat$X1,1/(4 * bat$N1),nbreak=khat.sure) else spher( bat$X1,1/(4 * bat$N1))
-#   tse.delta.gl.sure <- sum(   (  ( bat$X2 - delta.gl.sure )^2 - 1/ ( 4 * bat$N2 )  )[ind]   )
-#   tse.gl.sure[j] <- tse.delta.gl.sure/tse.zero
+ 
+  # SURE(equal-bins)
+  delta.gl.sure <- grouplinear.sure(x=bat$X1, v=1/(4 * bat$N1),kmax=60)
+  tse.delta.gl.sure <- sum(   (  ( bat$X2 - delta.gl.sure )^2 - 1/ ( 4 * bat$N2 )  )[ind]   )
+  tse.gl.sure[j] <- tse.delta.gl.sure/tse.zero
   
   
   delta.dynamic=GroupSure(bat$X1,1/(4 * bat$N1))
@@ -170,36 +149,36 @@ for(j in 1:N){
   # transform (to a vector with full-rank diagonal cov matrix)
   y.white <- crossprod(u1,y)
   estimate.white <- grouplinear.zero(x=y.white, v=s$d[1:564]) #tse=.22 if grouplinear() instead of grouplinear.zero used
-#   estimate.white.dynamic <- GroupSure(x=y.white,v=s$d[1:564])
-#   estimate.white.dynamicMin <- GroupSureMin(x=y.white,v=s$d[1:564],40)
-#   estimate.white.dynamicMin2 <- GroupSureMin(x=y.white,v=s$d[1:564],50)
-#   estimate.white.dynamicMin3 <- GroupSureMin(x=y.white,v=s$d[1:564],60)
+  estimate.white.dynamic <- GroupSure.zero(x=y.white,v=s$d[1:564])
+  estimate.white.dynamicMin <- GroupSureMin.zero(x=y.white,v=s$d[1:564],40)
+  estimate.white.dynamicMin2 <- GroupSureMin.zero(x=y.white,v=s$d[1:564],50)
+  estimate.white.dynamicMin3 <- GroupSureMin.zero(x=y.white,v=s$d[1:564],60)
   # back-transform
   estimate <- u1 %*% estimate.white
-#   estimate.dynamic <- u1 %*% estimate.white.dynamic
-#   estimate.dynamicMin <- u1 %*% estimate.white.dynamicMin
-#   estimatedynamicMin2 <- u1 %*% estimate.white.dynamicMin2
-#   estimate.dynamicMin3 <- u1 %*% estimate.white.dynamicMin3
+  estimate.dynamic <- u1 %*% estimate.white.dynamic
+  estimate.dynamicMin <- u1 %*% estimate.white.dynamicMin
+  estimate.dynamicMin2 <- u1 %*% estimate.white.dynamicMin2
+  estimate.dynamicMin3 <- u1 %*% estimate.white.dynamicMin3
   # final estimate
   delta.gl.add <- fitted(lm1) + estimate
   tse.delta.gl.add <- sum(   (  ( bat$X2 - delta.gl.add )^2 - 1/ ( 4 * bat$N2 )  )[ind]   )
   tse.gl.add[j] <- tse.delta.gl.add/tse.zero #tse=.20
   
-#   delta.gl.dynamic.add <- fitted(lm1) + estimate.dynamic
-#   tse.delta.gl.dynamic.add <- sum(   (  ( bat$X2 - delta.gl.dynamic.add )^2 - 1/ ( 4 * bat$N2 )  )[ind]   )
-#   tse.gl.dynamic.add[j] <- tse.delta.gl.dynamic.add/tse.zero #tse=.20
-# 
-#   delta.gl.dynamicMin.add <- fitted(lm1) + estimate.dynamicMin
-#   tse.delta.gl.dynamicMin.add <- sum(   (  ( bat$X2 - delta.gl.dynamicMin.add )^2 - 1/ ( 4 * bat$N2 )  )[ind]   )
-#   tse.gl.dynamicMin.add[j] <- tse.delta.gl.dynamicMin.add/tse.zero #tse=.20
-# 
-#   delta.gl.dynamicMin2.add <- fitted(lm1) + estimate.dynamicMin2
-#   tse.delta.gl.dynamicMin2.add <- sum(   (  ( bat$X2 - delta.gl.dynamicMin2.add )^2 - 1/ ( 4 * bat$N2 )  )[ind]   )
-#   tse.gl.dynamicMin2.add[j] <- tse.delta.gl.dynamicMin2.add/tse.zero #tse=.20
-# 
-#   delta.gl.dynamicMin3.add <- fitted(lm1) + estimate.dynamicMin3
-#   tse.delta.gl.dynamicMin3.add <- sum(   (  ( bat$X2 - delta.gl.dynamicMin3.add )^2 - 1/ ( 4 * bat$N2 )  )[ind]   )
-#   tse.gl.dynamicMin3.add[j] <- tse.delta.gl.dynamicMin3.add/tse.zero #tse=.20
+  delta.gl.dynamic.add <- fitted(lm1) + estimate.dynamic
+  tse.delta.gl.dynamic.add <- sum(   (  ( bat$X2 - delta.gl.dynamic.add )^2 - 1/ ( 4 * bat$N2 )  )[ind]   )
+  tse.gl.dynamic.add[j] <- tse.delta.gl.dynamic.add/tse.zero #tse=.20
+
+  delta.gl.dynamicMin.add <- fitted(lm1) + estimate.dynamicMin
+  tse.delta.gl.dynamicMin.add <- sum(   (  ( bat$X2 - delta.gl.dynamicMin.add )^2 - 1/ ( 4 * bat$N2 )  )[ind]   )
+  tse.gl.dynamicMin.add[j] <- tse.delta.gl.dynamicMin.add/tse.zero #tse=.20
+
+  delta.gl.dynamicMin2.add <- fitted(lm1) + estimate.dynamicMin2
+  tse.delta.gl.dynamicMin2.add <- sum(   (  ( bat$X2 - delta.gl.dynamicMin2.add )^2 - 1/ ( 4 * bat$N2 )  )[ind]   )
+  tse.gl.dynamicMin2.add[j] <- tse.delta.gl.dynamicMin2.add/tse.zero #tse=.20
+
+  delta.gl.dynamicMin3.add <- fitted(lm1) + estimate.dynamicMin3
+  tse.delta.gl.dynamicMin3.add <- sum(   (  ( bat$X2 - delta.gl.dynamicMin3.add )^2 - 1/ ( 4 * bat$N2 )  )[ind]   )
+  tse.gl.dynamicMin3.add[j] <- tse.delta.gl.dynamicMin3.add/tse.zero #tse=.20
   
 
 
@@ -216,36 +195,36 @@ for(j in 1:N){
   # transform (to a vector with full-rank diagonal cov matrix)
   y.white <- crossprod(u1,y)
   estimate.white <- grouplinear.zero(x=y.white, v=s$d[1:563]) #tse=.22 if grouplinear() instead of grouplinear.zero used
-#   estimate.white.dynamic <- GroupSure(x=y.white,v=s$d[1:563])
-#   estimate.white.dynamicMin <- GroupSureMin(x=y.white,v=s$d[1:563],40)
-#   estimate.white.dynamicMin2 <- GroupSureMin(x=y.white,v=s$d[1:563],50)
-#   estimate.white.dynamicMin3 <- GroupSureMin(x=y.white,v=s$d[1:563],60)
+  estimate.white.dynamic <- GroupSure.zero(x=y.white,v=s$d[1:563])
+  estimate.white.dynamicMin <- GroupSureMin.zero(x=y.white,v=s$d[1:563],40)
+  estimate.white.dynamicMin2 <- GroupSureMin.zero(x=y.white,v=s$d[1:563],d=50) #
+  estimate.white.dynamicMin3 <- GroupSureMin.zero(x=y.white,v=s$d[1:563],60)
     # back-transform
   estimate <- u1 %*% estimate.white
-#   estimate.dynamic <- u1 %*% estimate.white.dynamic
-#   estimate.dynamicMin <- u1 %*% estimate.white.dynamicMin
-#   estimatedynamicMin2 <- u1 %*% estimate.white.dynamicMin2
-#   estimate.dynamicMin3 <- u1 %*% estimate.white.dynamicMin3
+  estimate.dynamic <- u1 %*% estimate.white.dynamic
+  estimate.dynamicMin <- u1 %*% estimate.white.dynamicMin
+  estimate.dynamicMin2 <- u1 %*% estimate.white.dynamicMin2
+  estimate.dynamicMin3 <- u1 %*% estimate.white.dynamicMin3
     # final estimate
   delta.gl.interaction <- fitted(lm1) + estimate
   tse.delta.gl.interaction <- sum(   (  ( bat$X2 - delta.gl.interaction )^2 - 1/ ( 4 * bat$N2 )  )[ind]   )
   tse.gl.interaction[j] <- tse.delta.gl.interaction/tse.zero #tse=.20
   
-#   delta.gl.dynamic.interaction <- fitted(lm1) + estimate.dynamic
-#   tse.delta.gl.dynamic.interaction <- sum(   (  ( bat$X2 - delta.gl.dynamic.interaction )^2 - 1/ ( 4 * bat$N2 )  )[ind]   )
-#   tse.gl.dynamic.interaction[j] <- tse.delta.gl.dynamic.interaction/tse.zero #tse=.20
-#   
-#   delta.gl.dynamicMin.interaction <- fitted(lm1) + estimate.dynamicMin
-#   tse.delta.gl.dynamicMin.interaction <- sum(   (  ( bat$X2 - delta.gl.dynamicMin.interaction )^2 - 1/ ( 4 * bat$N2 )  )[ind]   )
-#   tse.gl.dynamicMin.interaction[j] <- tse.delta.gl.dynamicMin.interaction/tse.zero #tse=.20
-#   
-#   delta.gl.dynamicMin2.interaction <- fitted(lm1) + estimate.dynamicMin2
-#   tse.delta.gl.dynamicMin2.interaction <- sum(   (  ( bat$X2 - delta.gl.dynamicMin2.interaction )^2 - 1/ ( 4 * bat$N2 )  )[ind]   )
-#   tse.gl.dynamicMin2.interaction[j] <- tse.delta.gl.dynamicMin2.interaction/tse.zero #tse=.20
-#   
-#   delta.gl.dynamicMin3.interaction <- fitted(lm1) + estimate.dynamicMin3
-#   tse.delta.gl.dynamicMin3.interaction <- sum(   (  ( bat$X2 - delta.gl.dynamicMin3.interaction )^2 - 1/ ( 4 * bat$N2 )  )[ind]   )
-#   tse.gl.dynamicMin3.interaction[j] <- tse.delta.gl.dynamicMin3.interaction/tse.zero #tse=.20
+  delta.gl.dynamic.interaction <- fitted(lm1) + estimate.dynamic
+  tse.delta.gl.dynamic.interaction <- sum(   (  ( bat$X2 - delta.gl.dynamic.interaction )^2 - 1/ ( 4 * bat$N2 )  )[ind]   )
+  tse.gl.dynamic.interaction[j] <- tse.delta.gl.dynamic.interaction/tse.zero #tse=.20
+  
+  delta.gl.dynamicMin.interaction <- fitted(lm1) + estimate.dynamicMin
+  tse.delta.gl.dynamicMin.interaction <- sum(   (  ( bat$X2 - delta.gl.dynamicMin.interaction )^2 - 1/ ( 4 * bat$N2 )  )[ind]   )
+  tse.gl.dynamicMin.interaction[j] <- tse.delta.gl.dynamicMin.interaction/tse.zero #tse=.20
+  
+  delta.gl.dynamicMin2.interaction <- fitted(lm1) + estimate.dynamicMin2
+  tse.delta.gl.dynamicMin2.interaction <- sum(   (  ( bat$X2 - delta.gl.dynamicMin2.interaction )^2 - 1/ ( 4 * bat$N2 )  )[ind]   )
+  tse.gl.dynamicMin2.interaction[j] <- tse.delta.gl.dynamicMin2.interaction/tse.zero #tse=.20
+  
+  delta.gl.dynamicMin3.interaction <- fitted(lm1) + estimate.dynamicMin3
+  tse.delta.gl.dynamicMin3.interaction <- sum(   (  ( bat$X2 - delta.gl.dynamicMin3.interaction )^2 - 1/ ( 4 * bat$N2 )  )[ind]   )
+  tse.gl.dynamicMin3.interaction[j] <- tse.delta.gl.dynamicMin3.interaction/tse.zero #tse=.20
 }
 
 tse.gm.all <- mean(tse.gm)
@@ -253,31 +232,31 @@ tse.JS.all <- mean(tse.JS)
 tse.M.all <- mean(tse.M)
 tse.SG.all <- mean(tse.SG)
 tse.gl.all <- mean(tse.gl)
-# tse.gl.dynamic.all <- mean(tse.gl.dynamic)
-# tse.gl.dynamicMin.all <- mean(tse.gl.dynamicMin)
-# tse.gl.dynamicMin2.all <- mean(tse.gl.dynamicMin2)
-# tse.gl.dynamicMin3.all <- mean(tse.gl.dynamicMin3)
+tse.gl.dynamic.all <- mean(tse.gl.dynamic)
+tse.gl.dynamicMin.all <- mean(tse.gl.dynamicMin)
+tse.gl.dynamicMin2.all <- mean(tse.gl.dynamicMin2)
+tse.gl.dynamicMin3.all <- mean(tse.gl.dynamicMin3)
 
 tse.gl.add.all <- mean(tse.gl.add)
-# tse.gl.dynamic.add.all <- mean(tse.gl.dynamic.add)
-# tse.gl.dynamicMin.add.all <- mean(tse.gl.dynamicMin.add)
-# tse.gl.dynamicMin2.add.all <- mean(tse.gl.dynamicMin2.add)
-# tse.gl.dynamicMin3.add.all <- mean(tse.gl.dynamicMin3.add)
+tse.gl.dynamic.add.all <- mean(tse.gl.dynamic.add)
+tse.gl.dynamicMin.add.all <- mean(tse.gl.dynamicMin.add)
+tse.gl.dynamicMin2.add.all <- mean(tse.gl.dynamicMin2.add)
+tse.gl.dynamicMin3.add.all <- mean(tse.gl.dynamicMin3.add)
 
 tse.gl.interaction.all <- mean(tse.gl.interaction)
-# tse.gl.dynamic.interaction.all <- mean(tse.gl.dynamic.interaction)
-# tse.gl.dynamicMin.interaction.all <- mean(tse.gl.dynamicMin.interaction)
-# tse.gl.dynamicMin2.interaction.all <- mean(tse.gl.dynamicMin2.interaction)
-# tse.gl.dynamicMin3.interaction.all <- mean(tse.gl.dynamicMin3.interaction)
+tse.gl.dynamic.interaction.all <- mean(tse.gl.dynamic.interaction)
+tse.gl.dynamicMin.interaction.all <- mean(tse.gl.dynamicMin.interaction)
+tse.gl.dynamicMin2.interaction.all <- mean(tse.gl.dynamicMin2.interaction)
+tse.gl.dynamicMin3.interaction.all <- mean(tse.gl.dynamicMin3.interaction)
 
-average=c(tse.gm.all,tse.JS.all,tse.M.all,tse.SG.all,tse.gl.all,#tse.gl.dynamic.all,tse.gl.dynamicMin.all,tse.gl.dynamicMin2.all,tse.gl.dynamicMin3.all,
-          tse.gl.add.all,#tse.gl.dynamic.add.all,tse.gl.dynamicMin.add.all,tse.gl.dynamicMin2.add.all,tse.gl.dynamicMin3.add.all,
-          tse.gl.interaction.all#,tse.gl.dynamic.interaction.all,tse.gl.dynamicMin.interaction.all,tse.gl.dynamicMin2.interaction.all,tse.gl.dynamicMin3.interaction.all
+average=c(tse.gm.all,tse.JS.all,tse.M.all,tse.SG.all,tse.gl.all,tse.gl.dynamic.all,tse.gl.dynamicMin.all,tse.gl.dynamicMin2.all,tse.gl.dynamicMin3.all,
+          tse.gl.add.all,tse.gl.dynamic.add.all,tse.gl.dynamicMin.add.all,tse.gl.dynamicMin2.add.all,tse.gl.dynamicMin3.add.all,
+          tse.gl.interaction.all,tse.gl.dynamic.interaction.all,tse.gl.dynamicMin.interaction.all,tse.gl.dynamicMin2.interaction.all,tse.gl.dynamicMin3.interaction.all
           )
 
-error=cbind(tse.gm,tse.JS,tse.M,tse.SG,tse.gl,#tse.gl.dynamic,tse.gl.dynamicMin,tse.gl.dynamicMin2,tse.gl.dynamicMin3,
-            tse.gl.add,#tse.gl.dynamic.add,tse.gl.dynamicMin.add,tse.gl.dynamicMin2.add,tse.gl.dynamicMin3.add,
-            tse.gl.interaction#,tse.gl.dynamic.interaction,tse.gl.dynamicMin.interaction,tse.gl.dynamicMin2.interaction,tse.gl.dynamicMin3.interaction
+error=cbind(tse.gm,tse.JS,tse.M,tse.SG,tse.gl,tse.gl.dynamic,tse.gl.dynamicMin,tse.gl.dynamicMin2,tse.gl.dynamicMin3,
+            tse.gl.add,tse.gl.dynamic.add,tse.gl.dynamicMin.add,tse.gl.dynamicMin2.add,tse.gl.dynamicMin3.add,
+            tse.gl.interaction,tse.gl.dynamic.interaction,tse.gl.dynamicMin.interaction,tse.gl.dynamicMin2.interaction,tse.gl.dynamicMin3.interaction
             )
 
 

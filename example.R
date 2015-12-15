@@ -128,6 +128,7 @@ delta.gl.sub <- fitted(lm1) + estimate
 tse.hat.delta.gl.sub <- sum(   (  ( bat$X2 - delta.gl.sub )^2 - 1/ ( 4 * bat$N2 )  )[ind]   )
 tse.hat.delta.gl.sub/tse.hat.zero
 
+
 # 1 + AB * pitcher
 # head( cbind(bat$Pitcher.,bat$N1) )
 lm1 <- lm(bat$X1 ~ as.factor(bat$Pitcher.) * bat$N1, weights = 4 * bat$N1)
@@ -150,7 +151,7 @@ delta.gl.sub <- fitted(lm1) + estimate
 tse.hat.delta.gl.sub <- sum(   (  ( bat$X2 - delta.gl.sub )^2 - 1/ ( 4 * bat$N2 )  )[ind]   )
 tse.hat.delta.gl.sub/tse.hat.zero
 
-# num bins = 2:10
+# compute tse for num bins = 2:10 
 rel.tse.breaks <- rep(NA,20)
 for(i in 2:20){
   estimate.white <- grouplinear.zero(x=y.white, v=s$d[1:563],nbreak = i)
@@ -196,7 +197,7 @@ cbind(nbreaks=order(rel.tse.breaks),rel.tse=sort(rel.tse.breaks))
 
 # SURE-binning (1+AB*pitcher)
 sure.vec <- rep(NA,30)
-sure.vec[1] <- sure.spher.zero(x=y.white, v=s$d[1:564])
+sure.vec[1] <- sure.spher.zero(x=y.white, v=s$d[1:564]) 
 for (k in 2:30){
   sure.vec[k] <- sure.grouplinear.zero(x=y.white, v=s$d[1:564],nbreak=k)
 }
@@ -417,8 +418,10 @@ ahatsub.unlist <- as.vector( unlist(ahatsub) )
 ahat <- ahatsub.unlist[order(indexsub.unlist)]
 
 plot(bat$N1[order(bat$N1)], ( lambda.sure/(lambda.sure+v) )[order(bat$N1)], ylim=c(0,.9), xlab=expression(N[1][i] ~ " = Number of at-bats"),ylab='1 - (Shrinkage factor)',type='n',cex.lab=.65)
-lines(bat$N1[order(bat$N1)], ( lambda.sure/(lambda.sure+v) )[order(bat$N1)], type='l', lty=3)
+# lines(bat$N1[order(bat$N1)], ( lambda.sure/(lambda.sure+v) )[order(bat$N1)], type='l', lty=3)
 # lines(bat$N1[order(bat$N1)], ( 1-bhat.sg )[order(bat$N1)],type='l', lty=1)
+points(bat$N1[order(bat$N1)], ( 1-bhat.sg )[order(bat$N1)],cex=.25)
+# points(1/(4*fit$z)[61:64],1-pmin(  pmax( fit$x[61:64],0 ),1  ),cex=.5,col='orange') 
 #monotonize sg:
 lines(sort(bat$N1), sort( 1-bhat.sg ), type='l', lty=1)
 # lines(bat$N1[order(bat$N1)], ( 1-bhat.gl )[order(bat$N1)], type='l', lty=1)
